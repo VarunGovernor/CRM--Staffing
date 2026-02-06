@@ -133,21 +133,6 @@ const LoginForm = () => {
         </p>
       </div>
 
-      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-        <div className="flex items-start space-x-2">
-          <Icon name="Info" size={16} className="text-blue-500 mt-0.5" />
-          <div className="text-sm text-blue-700">
-            <p className="font-medium mb-2">Demo Credentials:</p>
-            <div className="space-y-1">
-              <p><strong>Admin:</strong> admin@crmstaffing.com / Admin@2025</p>
-              <p><strong>Recruiter:</strong> recruiter@crmstaffing.com / Recruiter@2025</p>
-              <p><strong>Sales:</strong> sales@crmstaffing.com / Sales@2025</p>
-              <p><strong>HR:</strong> hr@crmstaffing.com / HR@2025</p>
-              <p><strong>Finance:</strong> finance@crmstaffing.com / Finance@2025</p>
-            </div>
-          </div>
-        </div>
-      </div>
     </form>
   );
 };

@@ -1,14 +1,22 @@
-import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Icon from '../AppIcon';
 import Button from './Button';
 import { useAuth } from '../../contexts/AuthContext';
+import { getUserMenuForRole } from '../../lib/permissions';
+import { logAuthEvent, AUDIT_ACTIONS } from '../../lib/auditLog';
 
 const Header = ({ onMenuToggle, isSidebarOpen = false }) => {
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isHelpDropdownOpen, setIsHelpDropdownOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, userProfile, signOut } = useAuth();
+  const userDropdownRef = useRef(null);
+  const helpDropdownRef = useRef(null);
+
+  const userRole = userProfile?.role || 'employee';
+  const menuItems = getUserMenuForRole(userRole);
 
   const handleUserDropdownToggle = () => {
     setIsUserDropdownOpen(!isUserDropdownOpen);
@@ -25,21 +33,32 @@ const Header = ({ onMenuToggle, isSidebarOpen = false }) => {
     setIsHelpDropdownOpen(false);
   };
 
+  // Close dropdowns on Escape key or outside click
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') handleDropdownClose();
+    };
+    if (isUserDropdownOpen || isHelpDropdownOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isUserDropdownOpen, isHelpDropdownOpen]);
+
+  const handleMenuItemClick = (path) => {
+    navigate(path);
+    handleDropdownClose();
+  };
+
   const handleLogout = async () => {
+    handleDropdownClose();
+    // Log the audit event before signing out
+    await logAuthEvent(AUDIT_ACTIONS.LOGOUT, {
+      id: user?.id,
+      email: user?.email,
+      role: userRole
+    }, true, { logoutMethod: 'user_menu' });
     await signOut();
-    handleDropdownClose();
-  };
-
-  const handleProfileClick = () => {
-    // Navigate to profile
-    console.log('Profile clicked');
-    handleDropdownClose();
-  };
-
-  const handleSettingsClick = () => {
-    // Navigate to settings
-    console.log('Settings clicked');
-    handleDropdownClose();
+    navigate('/login', { replace: true });
   };
 
   return (
@@ -202,31 +221,29 @@ const Header = ({ onMenuToggle, isSidebarOpen = false }) => {
                       </div>
                     </div>
                     <div className="py-1">
-                      <button
-                        onClick={handleProfileClick}
-                        className="flex items-center w-full px-4 py-2 text-sm text-popover-foreground hover:bg-muted transition-smooth"
-                      >
-                        <Icon name="User" size={16} className="mr-3" />
-                        Profile Settings
-                      </button>
-                      <button
-                        onClick={handleSettingsClick}
-                        className="flex items-center w-full px-4 py-2 text-sm text-popover-foreground hover:bg-muted transition-smooth"
-                      >
-                        <Icon name="Settings" size={16} className="mr-3" />
-                        Account Settings
-                      </button>
-                      <button
-                        onClick={() => console.log('Billing clicked')}
-                        className="flex items-center w-full px-4 py-2 text-sm text-popover-foreground hover:bg-muted transition-smooth"
-                      >
-                        <Icon name="CreditCard" size={16} className="mr-3" />
-                        Billing & Plans
-                      </button>
+                      {menuItems.map((item) => (
+                        <button
+                          key={item.path}
+                          onClick={() => handleMenuItemClick(item.path)}
+                          className={`flex items-center w-full px-4 py-2 text-sm transition-smooth ${
+                            location.pathname === item.path
+                              ? 'bg-muted text-foreground font-medium'
+                              : 'text-popover-foreground hover:bg-muted'
+                          }`}
+                        >
+                          <Icon name={item.icon} size={16} className="mr-3" />
+                          <div className="text-left">
+                            <div>{item.label}</div>
+                            {item.description && (
+                              <div className="text-xs text-muted-foreground mt-0.5">{item.description}</div>
+                            )}
+                          </div>
+                        </button>
+                      ))}
                       <div className="border-t border-border my-1" />
                       <button
                         onClick={handleLogout}
-                        className="flex items-center w-full px-4 py-2 text-sm text-popover-foreground hover:bg-muted transition-smooth"
+                        className="flex items-center w-full px-4 py-2 text-sm text-error hover:bg-error/10 transition-smooth"
                       >
                         <Icon name="LogOut" size={16} className="mr-3" />
                         Sign Out

@@ -10,7 +10,7 @@
     --color-background: #FFFFFF; /* clean white background */
     --color-foreground: #0F1419; /* even darker gray for maximum contrast */
     --color-border: #E2E8F0; /* clean light gray border */
-    --color-input: #FFFFFF; /* clean white input */
+    --color-input: #CBD5E1; /* visible slate-300 input border */
     --color-ring: #A3D9A5; /* much darker mint green ring */
     
     /* Card Colors */

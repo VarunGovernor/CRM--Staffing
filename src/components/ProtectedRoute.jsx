@@ -10,6 +10,7 @@ import {
   getPermissionLevel,
   PERMISSION_LEVELS
 } from '../lib/permissions';
+import { logUnauthorizedAccess } from '../lib/auditLog';
 
 // Create a context to share permission info with child components
 const PermissionContext = createContext({
@@ -66,9 +67,15 @@ const ProtectedRoute = ({ children, allowedRoles = [], module: explicitModule })
     const hasModuleAccess = hasAccess(userRole, currentModule);
 
     if (!hasModuleAccess) {
-      // Redirect to dashboard if no access, or to login if no dashboard access either
+      // Log unauthorized access attempt
+      logUnauthorizedAccess(
+        { id: user?.id, email: user?.email, role: userRole },
+        currentModule,
+        'route_access'
+      );
+      // Redirect to unauthorized page, or login if not authenticated
       if (hasAccess(userRole, 'dashboard')) {
-        return <Navigate to="/dashboard" replace />;
+        return <Navigate to="/unauthorized" replace />;
       }
       return <Navigate to="/login" replace />;
     }

@@ -4,6 +4,7 @@ import ScrollToTop from "components/ScrollToTop";
 import ErrorBoundary from "components/ErrorBoundary";
 import ProtectedRoute from "components/ProtectedRoute";
 import NotFound from "pages/NotFound";
+import Unauthorized from './pages/Unauthorized';
 
 // Public Pages
 import Home from './pages/public/Home';
@@ -37,6 +38,10 @@ import PayrollPage from './pages/payroll';
 import Reports from './pages/reports';
 import Activities from './pages/activities';
 
+// User Menu Pages
+import ProfileSettings from './pages/profile';
+import AccountSettings from './pages/account-settings';
+
 const Routes = () => {
   return (
     <BrowserRouter>
@@ -51,6 +56,12 @@ const Routes = () => {
         <Route path="/contact" element={<Contact />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/unauthorized" element={<Unauthorized />} />
+
+        {/* User Menu Routes - Profile, Account Settings, Billing */}
+        <Route path="/profile" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
+        <Route path="/settings/account" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
+        <Route path="/settings/billing" element={<ProtectedRoute><BillingPage /></ProtectedRoute>} />
 
         {/* Protected CRM Routes - Access controlled by permissions.js */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
