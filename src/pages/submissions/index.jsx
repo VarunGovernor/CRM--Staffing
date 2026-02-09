@@ -1,14 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Header from '../../components/ui/Header';
 import Sidebar from '../../components/ui/Sidebar';
-
+import Icon from '../../components/AppIcon';
 import { supabase } from '../../lib/supabase';
 
 const Submissions = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('');
+
+  const filteredSubmissions = useMemo(() => {
+    return submissions?.filter(s => {
+      const candidateName = s?.candidate?.full_name || `${s?.candidate?.first_name || ''} ${s?.candidate?.last_name || ''}`;
+      const matchesSearch = searchTerm === '' ||
+        candidateName?.toLowerCase()?.includes(searchTerm?.toLowerCase()) ||
+        s?.candidate?.email?.toLowerCase()?.includes(searchTerm?.toLowerCase()) ||
+        s?.job_title?.toLowerCase()?.includes(searchTerm?.toLowerCase()) ||
+        s?.technology?.toLowerCase()?.includes(searchTerm?.toLowerCase()) ||
+        s?.vendor?.name?.toLowerCase()?.includes(searchTerm?.toLowerCase());
+      const matchesStatus = statusFilter === '' || s?.status === statusFilter;
+      const matchesSource = sourceFilter === '' || s?.submission_source === sourceFilter;
+      return matchesSearch && matchesStatus && matchesSource;
+    });
+  }, [submissions, searchTerm, statusFilter, sourceFilter]);
 
   useEffect(() => {
     fetchSubmissions();
@@ -70,6 +88,54 @@ const Submissions = () => {
               <p className="text-muted-foreground">Track candidate submissions to vendors and clients</p>
             </div>
 
+            {/* Filters */}
+            <div className="bg-card rounded-xl border border-border p-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="relative">
+                  <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Search candidate, job, vendor, tech..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                >
+                  <option value="">All Statuses</option>
+                  <option value="submitted">Submitted</option>
+                  <option value="shortlisted">Shortlisted</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="interview_scheduled">Interview Scheduled</option>
+                  <option value="selected">Selected</option>
+                </select>
+                <select
+                  value={sourceFilter}
+                  onChange={(e) => setSourceFilter(e.target.value)}
+                  className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                >
+                  <option value="">All Sources</option>
+                  <option value="direct">Direct</option>
+                  <option value="indeed">Indeed</option>
+                  <option value="glassdoor">Glassdoor</option>
+                  <option value="linkedin">LinkedIn</option>
+                  <option value="dice">Dice</option>
+                  <option value="ziprecruiter">ZipRecruiter</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              {(searchTerm || statusFilter || sourceFilter) && (
+                <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>Showing {filteredSubmissions?.length} of {submissions?.length} submissions</span>
+                  <button onClick={() => { setSearchTerm(''); setStatusFilter(''); setSourceFilter(''); }} className="text-primary hover:underline ml-2">Clear filters</button>
+                </div>
+              )}
+            </div>
+
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-6">
               <div className="bg-card p-6 rounded-xl border border-border">
@@ -125,7 +191,7 @@ const Submissions = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {submissions?.map((submission) => (
+                      {filteredSubmissions?.map((submission) => (
                         <tr key={submission?.id} className="hover:bg-muted/30 transition-colors">
                           <td className="px-6 py-4">
                             <div>

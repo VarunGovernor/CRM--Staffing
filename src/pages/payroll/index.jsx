@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from '../../components/ui/Header';
 import Sidebar from '../../components/ui/Sidebar';
@@ -33,6 +33,36 @@ const PayrollPage = () => {
   });
   const [timesheetErrors, setTimesheetErrors] = useState({});
   const [timesheetSaving, setTimesheetSaving] = useState(false);
+
+  // Search filter
+  const [searchTerm, setSearchTerm] = useState('');
+  const [payrollStatusFilter, setPayrollStatusFilter] = useState('');
+
+  const filteredPayroll = useMemo(() => {
+    return payrollData?.filter(p => {
+      const matchesSearch = searchTerm === '' ||
+        p?.employee?.toLowerCase()?.includes(searchTerm?.toLowerCase()) ||
+        p?.role?.toLowerCase()?.includes(searchTerm?.toLowerCase());
+      const matchesStatus = payrollStatusFilter === '' || p?.status === payrollStatusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [payrollData, searchTerm, payrollStatusFilter]);
+
+  const filteredTimesheets = useMemo(() => {
+    return timesheetData?.filter(t => {
+      return searchTerm === '' ||
+        t?.employee?.toLowerCase()?.includes(searchTerm?.toLowerCase());
+    });
+  }, [timesheetData, searchTerm]);
+
+  const filteredC2c = useMemo(() => {
+    return c2cTimesheets?.filter(ts => {
+      const name = getCandidateDisplayName(ts?.candidate);
+      return searchTerm === '' ||
+        name?.toLowerCase()?.includes(searchTerm?.toLowerCase()) ||
+        ts?.candidate?.email?.toLowerCase()?.includes(searchTerm?.toLowerCase());
+    });
+  }, [c2cTimesheets, searchTerm]);
 
   // Payment modal state
   const [paymentModal, setPaymentModal] = useState({ isOpen: false, employee: null });
@@ -314,6 +344,42 @@ const PayrollPage = () => {
               </div>
             </div>
 
+            {/* Filters */}
+            <div className="bg-card rounded-xl border border-border p-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative">
+                  <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Search employee or candidate..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+                {activeTab === 'payroll' && (
+                  <select
+                    value={payrollStatusFilter}
+                    onChange={(e) => setPayrollStatusFilter(e.target.value)}
+                    className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  >
+                    <option value="">All Statuses</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Processed">Processed</option>
+                    <option value="Partial">Partial</option>
+                  </select>
+                )}
+              </div>
+              {searchTerm && (
+                <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>
+                    Showing {activeTab === 'payroll' ? filteredPayroll?.length : activeTab === 'timesheet' ? filteredTimesheets?.length : filteredC2c?.length} results
+                  </span>
+                  <button onClick={() => { setSearchTerm(''); setPayrollStatusFilter(''); }} className="text-primary hover:underline ml-2">Clear</button>
+                </div>
+              )}
+            </div>
+
             {/* Content */}
             {loading ? (
               <div className="flex items-center justify-center h-64">
@@ -347,7 +413,7 @@ const PayrollPage = () => {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border">
-                            {payrollData.map((row) => {
+                            {filteredPayroll.map((row) => {
                               const balance = row.totalPay - row.paidAmount;
                               return (
                                 <tr key={row.id} className="hover:bg-muted/30 transition-colors">
@@ -424,7 +490,7 @@ const PayrollPage = () => {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border">
-                            {timesheetData.map((row) => (
+                            {filteredTimesheets.map((row) => (
                               <tr key={row.id} className="hover:bg-muted/30 transition-colors">
                                 <td className="px-6 py-4">
                                   <p className="font-medium text-foreground">{row.employee}</p>
@@ -534,7 +600,7 @@ const PayrollPage = () => {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
-                              {c2cTimesheets.map((ts) => (
+                              {filteredC2c.map((ts) => (
                                 <tr key={ts.id} className="hover:bg-muted/30 transition-colors">
                                   <td className="px-6 py-4">
                                     <div>
@@ -603,7 +669,7 @@ const PayrollPage = () => {
                                   </td>
                                 </tr>
                               ))}
-                              {c2cTimesheets.length === 0 && (
+                              {filteredC2c.length === 0 && (
                                 <tr>
                                   <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
                                     No C2C timesheets submitted yet

@@ -1,14 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Header from '../../components/ui/Header';
 import Sidebar from '../../components/ui/Sidebar';
-
+import Icon from '../../components/AppIcon';
 import { supabase } from '../../lib/supabase';
 
 const Invoices = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
+  const filteredInvoices = useMemo(() => {
+    return invoices?.filter(inv => {
+      const candidateName = `${inv?.candidate?.first_name || ''} ${inv?.candidate?.last_name || ''}`;
+      const matchesSearch = searchTerm === '' ||
+        candidateName?.toLowerCase()?.includes(searchTerm?.toLowerCase()) ||
+        inv?.invoice_number?.toLowerCase()?.includes(searchTerm?.toLowerCase()) ||
+        inv?.placement?.job_title?.toLowerCase()?.includes(searchTerm?.toLowerCase()) ||
+        inv?.placement?.client_name?.toLowerCase()?.includes(searchTerm?.toLowerCase());
+      const matchesStatus = statusFilter === '' || inv?.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [invoices, searchTerm, statusFilter]);
 
   useEffect(() => {
     fetchInvoices();
@@ -58,6 +73,40 @@ const Invoices = () => {
             <div className="mb-8">
               <h1 className="text-2xl lg:text-3xl font-bold text-foreground mb-2">Invoicing & Timesheets</h1>
               <p className="text-muted-foreground">Manage payroll, invoices, and timesheets</p>
+            </div>
+
+            {/* Filters */}
+            <div className="bg-card rounded-xl border border-border p-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative">
+                  <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Search invoice #, candidate, job title..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                >
+                  <option value="">All Statuses</option>
+                  <option value="draft">Draft</option>
+                  <option value="pending">Pending</option>
+                  <option value="paid">Paid</option>
+                  <option value="overdue">Overdue</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+              {(searchTerm || statusFilter) && (
+                <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>Showing {filteredInvoices?.length} of {invoices?.length} invoices</span>
+                  <button onClick={() => { setSearchTerm(''); setStatusFilter(''); }} className="text-primary hover:underline ml-2">Clear filters</button>
+                </div>
+              )}
             </div>
 
             {/* Stats */}
@@ -117,7 +166,7 @@ const Invoices = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {invoices?.map((invoice) => (
+                      {filteredInvoices?.map((invoice) => (
                         <tr key={invoice?.id} className="hover:bg-muted/30 transition-colors">
                           <td className="px-6 py-4 font-medium text-foreground">
                             {invoice?.invoice_number}

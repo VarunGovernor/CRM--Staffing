@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Header from '../../components/ui/Header';
 import Sidebar from '../../components/ui/Sidebar';
@@ -9,6 +9,24 @@ const Interviews = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [interviews, setInterviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [modeFilter, setModeFilter] = useState('');
+  const [roundFilter, setRoundFilter] = useState('');
+
+  const filteredInterviews = useMemo(() => {
+    return interviews?.filter(i => {
+      const candidateName = `${i?.candidate?.first_name || ''} ${i?.candidate?.last_name || ''}`;
+      const matchesSearch = searchTerm === '' ||
+        candidateName?.toLowerCase()?.includes(searchTerm?.toLowerCase()) ||
+        i?.candidate?.email?.toLowerCase()?.includes(searchTerm?.toLowerCase()) ||
+        i?.submission?.job_title?.toLowerCase()?.includes(searchTerm?.toLowerCase()) ||
+        i?.interviewer_name?.toLowerCase()?.includes(searchTerm?.toLowerCase()) ||
+        i?.mentor?.full_name?.toLowerCase()?.includes(searchTerm?.toLowerCase());
+      const matchesMode = modeFilter === '' || i?.interview_mode === modeFilter;
+      const matchesRound = roundFilter === '' || i?.interview_round === roundFilter;
+      return matchesSearch && matchesMode && matchesRound;
+    });
+  }, [interviews, searchTerm, modeFilter, roundFilter]);
 
   useEffect(() => {
     fetchInterviews();
@@ -68,6 +86,51 @@ const Interviews = () => {
             <div className="mb-8">
               <h1 className="text-2xl lg:text-3xl font-bold text-foreground mb-2">Interview Management</h1>
               <p className="text-muted-foreground">Schedule and track candidate interviews</p>
+            </div>
+
+            {/* Filters */}
+            <div className="bg-card rounded-xl border border-border p-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="relative">
+                  <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Search candidate, job, interviewer..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+                <select
+                  value={modeFilter}
+                  onChange={(e) => setModeFilter(e.target.value)}
+                  className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                >
+                  <option value="">All Modes</option>
+                  <option value="phone">Phone</option>
+                  <option value="video">Video</option>
+                  <option value="in_person">In Person</option>
+                  <option value="technical">Technical</option>
+                  <option value="hr_round">HR Round</option>
+                </select>
+                <select
+                  value={roundFilter}
+                  onChange={(e) => setRoundFilter(e.target.value)}
+                  className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                >
+                  <option value="">All Rounds</option>
+                  <option value="round_1">Round 1</option>
+                  <option value="round_2">Round 2</option>
+                  <option value="round_3">Round 3</option>
+                  <option value="final">Final</option>
+                </select>
+              </div>
+              {(searchTerm || modeFilter || roundFilter) && (
+                <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>Showing {filteredInterviews?.length} of {interviews?.length} interviews</span>
+                  <button onClick={() => { setSearchTerm(''); setModeFilter(''); setRoundFilter(''); }} className="text-primary hover:underline ml-2">Clear filters</button>
+                </div>
+              )}
             </div>
 
             {/* Stats */}
@@ -144,7 +207,7 @@ const Interviews = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {interviews?.map((interview) => (
+                      {filteredInterviews?.map((interview) => (
                         <tr key={interview?.id} className="hover:bg-muted/30 transition-colors">
                           <td className="px-6 py-4">
                             <div>
