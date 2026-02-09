@@ -34,6 +34,22 @@ const PayrollPage = () => {
   const [timesheetErrors, setTimesheetErrors] = useState({});
   const [timesheetSaving, setTimesheetSaving] = useState(false);
 
+  // W2 Timesheet state
+  const [w2Timesheets, setW2Timesheets] = useState([]);
+  const [w2Candidates, setW2Candidates] = useState([]);
+  const [w2Loading, setW2Loading] = useState(true);
+  const [w2ModalOpen, setW2ModalOpen] = useState(false);
+  const [w2Form, setW2Form] = useState({
+    candidate_id: '',
+    period_start: '',
+    period_end: '',
+    hours_worked: '',
+    screenshot_url: '',
+    notes: ''
+  });
+  const [w2Errors, setW2Errors] = useState({});
+  const [w2Saving, setW2Saving] = useState(false);
+
   // Search filter
   const [searchTerm, setSearchTerm] = useState('');
   const [payrollStatusFilter, setPayrollStatusFilter] = useState('');
@@ -64,6 +80,15 @@ const PayrollPage = () => {
     });
   }, [c2cTimesheets, searchTerm]);
 
+  const filteredW2 = useMemo(() => {
+    return w2Timesheets?.filter(ts => {
+      const name = getCandidateDisplayName(ts?.candidate);
+      return searchTerm === '' ||
+        name?.toLowerCase()?.includes(searchTerm?.toLowerCase()) ||
+        ts?.candidate?.email?.toLowerCase()?.includes(searchTerm?.toLowerCase());
+    });
+  }, [w2Timesheets, searchTerm]);
+
   // Payment modal state
   const [paymentModal, setPaymentModal] = useState({ isOpen: false, employee: null });
   const [paymentType, setPaymentType] = useState('full');
@@ -72,6 +97,7 @@ const PayrollPage = () => {
   useEffect(() => {
     fetchData();
     fetchC2cData();
+    fetchW2Data();
   }, []);
 
   const fetchData = async () => {
@@ -135,6 +161,83 @@ const PayrollPage = () => {
     } finally {
       setC2cLoading(false);
     }
+  };
+
+  const fetchW2Data = async () => {
+    setW2Loading(true);
+    try {
+      const [candidatesRes, timesheetsRes] = await Promise.all([
+        supabase?.from('candidates')?.select('id, first_name, last_name, full_name, email')?.eq('deal_type', 'w2')?.order('full_name'),
+        supabase?.from('timesheets')?.select(`
+          *,
+          candidate:candidates!inner(id, first_name, last_name, full_name, email, deal_type),
+          submitted_by_user:user_profiles!submitted_by(full_name),
+          approved_by_user:user_profiles!approved_by(full_name)
+        `)?.eq('candidate.deal_type', 'w2')?.order('period_start', { ascending: false })
+      ]);
+
+      setW2Candidates(candidatesRes?.data || []);
+      setW2Timesheets(timesheetsRes?.data || []);
+    } catch (error) {
+      console.error('Error fetching W2 data:', error);
+    } finally {
+      setW2Loading(false);
+    }
+  };
+
+  const handleW2FormChange = (e) => {
+    const { name, value } = e.target;
+    setW2Form(prev => ({ ...prev, [name]: value }));
+    if (w2Errors[name]) {
+      setW2Errors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleW2Submit = async () => {
+    const errors = {};
+    if (!w2Form.candidate_id) errors.candidate_id = 'Employee is required';
+    if (!w2Form.period_start) errors.period_start = 'Start date is required';
+    if (!w2Form.period_end) errors.period_end = 'End date is required';
+    if (!w2Form.hours_worked) errors.hours_worked = 'Hours are required';
+
+    if (Object.keys(errors).length > 0) {
+      setW2Errors(errors);
+      return;
+    }
+
+    setW2Saving(true);
+    try {
+      const { error } = await supabase.from('timesheets').insert({
+        candidate_id: w2Form.candidate_id,
+        period_start: w2Form.period_start,
+        period_end: w2Form.period_end,
+        hours_worked: parseFloat(w2Form.hours_worked),
+        screenshot_url: w2Form.screenshot_url?.trim() || null,
+        notes: w2Form.notes?.trim() || null,
+        submitted_by: user?.id
+      });
+
+      if (!error) {
+        setW2ModalOpen(false);
+        setW2Form({ candidate_id: '', period_start: '', period_end: '', hours_worked: '', screenshot_url: '', notes: '' });
+        setW2Errors({});
+        fetchW2Data();
+      }
+    } catch (error) {
+      console.error('Error submitting W2 timesheet:', error);
+    } finally {
+      setW2Saving(false);
+    }
+  };
+
+  const handleApproveW2 = async (timesheetId) => {
+    const { error } = await supabase.from('timesheets').update({
+      is_approved: true,
+      approved_by: user?.id,
+      approved_at: new Date().toISOString()
+    }).eq('id', timesheetId);
+
+    if (!error) fetchW2Data();
   };
 
   const handleTimesheetFormChange = (e) => {
@@ -332,6 +435,16 @@ const PayrollPage = () => {
                   DAILY TIMESHEET LOGS
                 </button>
                 <button
+                  onClick={() => setActiveTab('w2')}
+                  className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === 'w2'
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  W2 TIMESHEETS
+                </button>
+                <button
                   onClick={() => setActiveTab('c2c')}
                   className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === 'c2c'
@@ -373,7 +486,7 @@ const PayrollPage = () => {
               {searchTerm && (
                 <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
                   <span>
-                    Showing {activeTab === 'payroll' ? filteredPayroll?.length : activeTab === 'timesheet' ? filteredTimesheets?.length : filteredC2c?.length} results
+                    Showing {activeTab === 'payroll' ? filteredPayroll?.length : activeTab === 'timesheet' ? filteredTimesheets?.length : activeTab === 'w2' ? filteredW2?.length : filteredC2c?.length} results
                   </span>
                   <button onClick={() => { setSearchTerm(''); setPayrollStatusFilter(''); }} className="text-primary hover:underline ml-2">Clear</button>
                 </div>
@@ -539,6 +652,151 @@ const PayrollPage = () => {
                     </div>
                   </div>
                 )}
+                {/* W2 Timesheets Tab */}
+                {activeTab === 'w2' && (
+                  <div>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">
+                          Manage timesheets for W2 employees. Track hours worked per pay period with tax withholding details.
+                        </p>
+                      </div>
+                      <Button onClick={() => setW2ModalOpen(true)} className="flex items-center gap-2 shrink-0">
+                        <Icon name="Plus" size={16} />
+                        Submit W2 Timesheet
+                      </Button>
+                    </div>
+
+                    {/* W2 Stats */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                      <div className="bg-card p-5 rounded-xl border border-border">
+                        <p className="text-xs text-muted-foreground mb-1">Total Entries</p>
+                        <p className="text-2xl font-bold text-foreground">{w2Timesheets.length}</p>
+                      </div>
+                      <div className="bg-card p-5 rounded-xl border border-border">
+                        <p className="text-xs text-muted-foreground mb-1">Pending Approval</p>
+                        <p className="text-2xl font-bold text-amber-600">
+                          {w2Timesheets.filter(t => !t.is_approved).length}
+                        </p>
+                      </div>
+                      <div className="bg-card p-5 rounded-xl border border-border">
+                        <p className="text-xs text-muted-foreground mb-1">Approved</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {w2Timesheets.filter(t => t.is_approved).length}
+                        </p>
+                      </div>
+                      <div className="bg-card p-5 rounded-xl border border-border">
+                        <p className="text-xs text-muted-foreground mb-1">Total Hours</p>
+                        <p className="text-2xl font-bold text-primary">
+                          {w2Timesheets.reduce((sum, t) => sum + (parseFloat(t.hours_worked) || 0), 0).toFixed(1)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {w2Loading ? (
+                      <div className="flex items-center justify-center h-64">
+                        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    ) : (
+                      <div className="bg-card rounded-xl border border-border overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead className="bg-muted/50 border-b border-border">
+                              <tr>
+                                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Employee</th>
+                                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Pay Period</th>
+                                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Hours</th>
+                                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Screenshot</th>
+                                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Submitted By</th>
+                                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
+                                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                              {filteredW2.map((ts) => (
+                                <tr key={ts.id} className="hover:bg-muted/30 transition-colors">
+                                  <td className="px-6 py-4">
+                                    <div>
+                                      <p className="font-medium text-foreground">
+                                        {getCandidateDisplayName(ts.candidate)}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">{ts.candidate?.email}</p>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4 text-sm text-foreground">
+                                    {ts.period_start && ts.period_end
+                                      ? `${new Date(ts.period_start).toLocaleDateString()} - ${new Date(ts.period_end).toLocaleDateString()}`
+                                      : '-'
+                                    }
+                                  </td>
+                                  <td className="px-6 py-4 text-sm font-medium text-foreground">
+                                    {ts.hours_worked} hrs
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    {ts.screenshot_url ? (
+                                      <a
+                                        href={ts.screenshot_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-primary hover:text-primary/80 flex items-center gap-1 text-sm"
+                                      >
+                                        <Icon name="Image" size={14} />
+                                        View
+                                      </a>
+                                    ) : (
+                                      <span className="text-muted-foreground text-sm">-</span>
+                                    )}
+                                  </td>
+                                  <td className="px-6 py-4 text-sm text-foreground">
+                                    {ts.submitted_by_user?.full_name || '-'}
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    {ts.is_approved ? (
+                                      <span className="flex items-center text-green-600 text-xs font-medium gap-1">
+                                        <Icon name="CheckCircle" size={14} />
+                                        Approved
+                                      </span>
+                                    ) : (
+                                      <span className="flex items-center text-amber-600 text-xs font-medium gap-1">
+                                        <Icon name="Clock" size={14} />
+                                        Pending
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    {!ts.is_approved && (
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleApproveW2(ts.id)}
+                                        className="flex items-center gap-1"
+                                      >
+                                        <Icon name="Check" size={14} />
+                                        Approve
+                                      </Button>
+                                    )}
+                                    {ts.is_approved && (
+                                      <span className="text-xs text-muted-foreground">
+                                        {ts.approved_by_user?.full_name} on {ts.approved_at ? new Date(ts.approved_at).toLocaleDateString() : ''}
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                              {filteredW2.length === 0 && (
+                                <tr>
+                                  <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
+                                    No W2 timesheets submitted yet
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* C2C Timesheets Tab */}
                 {activeTab === 'c2c' && (
                   <div>
@@ -763,6 +1021,88 @@ const PayrollPage = () => {
               name="notes"
               value={timesheetForm.notes}
               onChange={handleTimesheetFormChange}
+              rows={2}
+              className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+              placeholder="Additional notes..."
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* W2 Timesheet Modal */}
+      <Modal
+        isOpen={w2ModalOpen}
+        onClose={() => { setW2ModalOpen(false); setW2Errors({}); }}
+        title="Submit W2 Timesheet"
+        description="Record hours worked by a W2 employee for the pay period"
+        size="md"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setW2ModalOpen(false)} disabled={w2Saving}>Cancel</Button>
+            <Button onClick={handleW2Submit} loading={w2Saving} disabled={w2Saving}>Submit Timesheet</Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">W2 Employee *</label>
+            <Select name="candidate_id" value={w2Form.candidate_id} onChange={handleW2FormChange}>
+              <option value="">Select W2 Employee</option>
+              {w2Candidates.map(c => (
+                <option key={c.id} value={c.id}>{getCandidateDisplayName(c)} ({c.email})</option>
+              ))}
+            </Select>
+            {w2Errors.candidate_id && <p className="text-xs text-red-500">{w2Errors.candidate_id}</p>}
+            {w2Candidates.length === 0 && (
+              <p className="text-xs text-amber-600">No W2 employees found. Set a candidate's deal type to W2 first.</p>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Input
+                label="Period Start *"
+                type="date"
+                name="period_start"
+                value={w2Form.period_start}
+                onChange={handleW2FormChange}
+                error={w2Errors.period_start}
+              />
+            </div>
+            <div>
+              <Input
+                label="Period End *"
+                type="date"
+                name="period_end"
+                value={w2Form.period_end}
+                onChange={handleW2FormChange}
+                error={w2Errors.period_end}
+              />
+            </div>
+          </div>
+          <Input
+            label="Hours Worked *"
+            type="number"
+            name="hours_worked"
+            value={w2Form.hours_worked}
+            onChange={handleW2FormChange}
+            error={w2Errors.hours_worked}
+            placeholder="e.g. 80"
+            min="0"
+            step="0.5"
+          />
+          <Input
+            label="Screenshot URL"
+            name="screenshot_url"
+            value={w2Form.screenshot_url}
+            onChange={handleW2FormChange}
+            placeholder="Paste link to timesheet screenshot"
+          />
+          <div>
+            <label className="text-sm font-medium text-foreground mb-1.5 block">Notes</label>
+            <textarea
+              name="notes"
+              value={w2Form.notes}
+              onChange={handleW2FormChange}
               rows={2}
               className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
               placeholder="Additional notes..."
