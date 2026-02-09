@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { logAuthEvent, AUDIT_ACTIONS } from '../lib/auditLog';
+import { notifyAdmins } from '../lib/notifications';
 
 const AuthContext = createContext({})
 
@@ -89,6 +91,23 @@ export const AuthProvider = ({ children }) => {
   const signIn = async (email, password) => {
     try {
       const { data, error } = await supabase?.auth?.signInWithPassword({ email, password })
+
+      if (!error && data?.user) {
+        // Fire-and-forget: log login event and notify admins
+        logAuthEvent(AUDIT_ACTIONS.LOGIN, {
+          id: data.user.id,
+          email: data.user.email,
+          role: data.user.user_metadata?.role
+        }, true, { loginMethod: 'email_password' });
+
+        notifyAdmins(
+          'login',
+          'User Logged In',
+          `${data.user.user_metadata?.full_name || data.user.email} has logged in.`,
+          { userId: data.user.id, userEmail: data.user.email }
+        );
+      }
+
       return { data, error }
     } catch (error) {
       return { error: { message: 'Network error. Please try again.' } }

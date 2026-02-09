@@ -163,6 +163,7 @@ const SignupForm = () => {
           <option value="sales">Sales</option>
           <option value="hr">HR</option>
           <option value="finance">Finance</option>
+          <option value="employee">Employee</option>
         </Select>
         <p className="text-xs text-muted-foreground">Admin role requires approval</p>
       </div>

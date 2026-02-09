@@ -50,6 +50,12 @@ const Settings = () => {
       label: 'Pipeline',
       icon: 'GitBranch',
       description: 'Configure sales pipeline and automation'
+    },
+    {
+      id: 'automation',
+      label: 'Automation',
+      icon: 'Zap',
+      description: 'Workflow automation rules (Phase 2)'
     }
   ];
 
@@ -65,6 +71,55 @@ const Settings = () => {
         return <CustomFieldsTab />;
       case 'pipeline':
         return <PipelineTab />;
+      case 'automation':
+        return (
+          <div className="p-6 lg:p-8">
+            <div className="max-w-2xl">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                  <Icon name="Zap" size={24} className="text-amber-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-foreground">Automation Rules</h2>
+                  <p className="text-sm text-muted-foreground">Coming in Phase 2</p>
+                </div>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-6">
+                <p className="text-sm text-amber-800">
+                  Workflow automation is planned for Phase 2. This will include:
+                </p>
+                <ul className="mt-3 space-y-2 text-sm text-amber-700">
+                  <li className="flex items-center gap-2"><Icon name="Check" size={14} /> Auto-assign recruiters to new candidates based on rules</li>
+                  <li className="flex items-center gap-2"><Icon name="Check" size={14} /> Auto-notify managers on submission status changes</li>
+                  <li className="flex items-center gap-2"><Icon name="Check" size={14} /> Auto-update candidate status based on placement events</li>
+                  <li className="flex items-center gap-2"><Icon name="Check" size={14} /> Scheduled reports and alert thresholds</li>
+                  <li className="flex items-center gap-2"><Icon name="Check" size={14} /> QuickBooks invoice sync triggers</li>
+                </ul>
+              </div>
+              <div className="space-y-4">
+                {[
+                  { name: 'Auto-assign Recruiter', description: 'Automatically assign a recruiter when a new candidate is created', enabled: false },
+                  { name: 'NCA Reminder', description: 'Send reminder after 48h if NCA is not uploaded', enabled: false },
+                  { name: 'Submission Follow-up', description: 'Auto-notify sales if no response within 3 days', enabled: false },
+                  { name: 'Placement Notification', description: 'Notify HR and Finance when a candidate is placed', enabled: false }
+                ].map((rule, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{rule.name}</p>
+                      <p className="text-xs text-muted-foreground">{rule.description}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">Phase 2</span>
+                      <div className="w-10 h-6 bg-gray-200 rounded-full relative cursor-not-allowed opacity-50">
+                        <div className="w-4 h-4 bg-white rounded-full absolute top-1 left-1 shadow-sm"></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
       default:
         return <ProfileTab />;
     }

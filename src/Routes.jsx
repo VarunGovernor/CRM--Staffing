@@ -42,6 +42,9 @@ import Activities from './pages/activities';
 import ProfileSettings from './pages/profile';
 import AccountSettings from './pages/account-settings';
 
+// Admin Pages
+import AdminActivity from './pages/admin-activity';
+
 const Routes = () => {
   return (
     <BrowserRouter>
@@ -85,6 +88,9 @@ const Routes = () => {
         <Route path="/payroll" element={<ProtectedRoute><PayrollPage /></ProtectedRoute>} />
         <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
         <Route path="/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
+
+        {/* Admin Routes */}
+        <Route path="/admin/activity" element={<ProtectedRoute><AdminActivity /></ProtectedRoute>} />
 
         <Route path="*" element={<NotFound />} />
       </RouterRoutes>

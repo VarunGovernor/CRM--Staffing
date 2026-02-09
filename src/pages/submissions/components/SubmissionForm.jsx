@@ -8,6 +8,22 @@ import { submissions as submissionsApi } from '../../../lib/database';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 
+const SUBMISSION_SOURCES = [
+  { value: 'direct', label: 'Direct' },
+  { value: 'indeed', label: 'Indeed' },
+  { value: 'glassdoor', label: 'Glassdoor' },
+  { value: 'linkedin', label: 'LinkedIn' },
+  { value: 'dice', label: 'Dice' },
+  { value: 'ziprecruiter', label: 'ZipRecruiter' },
+  { value: 'other', label: 'Other' }
+];
+
+const LOCATION_TYPES = [
+  { value: 'remote', label: 'Remote' },
+  { value: 'onsite', label: 'Onsite' },
+  { value: 'hybrid', label: 'Hybrid' }
+];
+
 const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
   const { user } = useAuth();
   const isEditing = !!submission?.id;
@@ -18,9 +34,19 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
     sales_person_id: '',
     job_title: '',
     job_description: '',
+    technology: '',
     submission_date: new Date().toISOString().split('T')[0],
     status: 'submitted',
     rate: '',
+    // Vendor contact info
+    vendor_contact_name: '',
+    vendor_contact_email: '',
+    vendor_contact_phone: '',
+    // Location
+    location_type: 'remote',
+    location_detail: '',
+    // Source tracking
+    submission_source: 'direct',
     notes: ''
   });
 
@@ -29,6 +55,7 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
   const [salespeople, setSalespeople] = useState([]);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [ncaWarning, setNcaWarning] = useState(null);
 
   useEffect(() => {
     fetchDropdownData();
@@ -42,9 +69,16 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
         sales_person_id: submission?.sales_person_id || '',
         job_title: submission?.job_title || '',
         job_description: submission?.job_description || '',
+        technology: submission?.technology || '',
         submission_date: submission?.submission_date || new Date().toISOString().split('T')[0],
         status: submission?.status || 'submitted',
         rate: submission?.rate?.toString() || '',
+        vendor_contact_name: submission?.vendor_contact_name || '',
+        vendor_contact_email: submission?.vendor_contact_email || '',
+        vendor_contact_phone: submission?.vendor_contact_phone || '',
+        location_type: submission?.location_type || 'remote',
+        location_detail: submission?.location_detail || '',
+        submission_source: submission?.submission_source || 'direct',
         notes: submission?.notes || ''
       });
     } else {
@@ -52,9 +86,23 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
     }
   }, [submission, isOpen]);
 
+  // Check NCA status when candidate changes
+  useEffect(() => {
+    if (formData.candidate_id) {
+      const selected = candidates.find(c => c.id === formData.candidate_id);
+      if (selected && selected.nca_status !== 'uploaded' && selected.nca_status !== 'verified') {
+        setNcaWarning(`${selected.full_name || `${selected.first_name} ${selected.last_name}`} has not completed NCA compliance (status: ${selected.nca_status || 'not started'}). NCA must be uploaded/verified before submitting.`);
+      } else {
+        setNcaWarning(null);
+      }
+    } else {
+      setNcaWarning(null);
+    }
+  }, [formData.candidate_id, candidates]);
+
   const fetchDropdownData = async () => {
     const [candidatesRes, vendorsRes, salespeopleRes] = await Promise.all([
-      supabase?.from('candidates')?.select('id, first_name, last_name, email')?.in('status', ['in_market', 'active'])?.order('first_name'),
+      supabase?.from('candidates')?.select('id, first_name, last_name, full_name, email, nca_status')?.in('status', ['in_market', 'active'])?.order('first_name'),
       supabase?.from('vendors')?.select('id, name, tier')?.eq('is_active', true)?.order('name'),
       supabase?.from('user_profiles')?.select('id, full_name')?.in('role', ['sales', 'admin'])?.order('full_name')
     ]);
@@ -71,12 +119,20 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
       sales_person_id: user?.id || '',
       job_title: '',
       job_description: '',
+      technology: '',
       submission_date: new Date().toISOString().split('T')[0],
       status: 'submitted',
       rate: '',
+      vendor_contact_name: '',
+      vendor_contact_email: '',
+      vendor_contact_phone: '',
+      location_type: 'remote',
+      location_detail: '',
+      submission_source: 'direct',
       notes: ''
     });
     setErrors({});
+    setNcaWarning(null);
   };
 
   const handleInputChange = (e) => {
@@ -99,6 +155,14 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
     if (!formData?.job_title?.trim()) newErrors.job_title = 'Job title is required';
     if (!formData?.submission_date) newErrors.submission_date = 'Submission date is required';
 
+    // NCA compliance blocking
+    if (formData.candidate_id) {
+      const selected = candidates.find(c => c.id === formData.candidate_id);
+      if (selected && selected.nca_status !== 'uploaded' && selected.nca_status !== 'verified') {
+        newErrors.candidate_id = 'Candidate must complete NCA compliance before submission';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors)?.length === 0;
   };
@@ -116,9 +180,16 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
       sales_person_id: formData?.sales_person_id || null,
       job_title: formData?.job_title?.trim(),
       job_description: formData?.job_description?.trim() || null,
+      technology: formData?.technology?.trim() || null,
       submission_date: formData?.submission_date,
       status: formData?.status,
       rate: formData?.rate ? parseFloat(formData?.rate) : null,
+      vendor_contact_name: formData?.vendor_contact_name?.trim() || null,
+      vendor_contact_email: formData?.vendor_contact_email?.trim() || null,
+      vendor_contact_phone: formData?.vendor_contact_phone?.trim() || null,
+      location_type: formData?.location_type || 'remote',
+      location_detail: formData?.location_detail?.trim() || null,
+      submission_source: formData?.submission_source || 'direct',
       notes: formData?.notes?.trim() || null
     };
 
@@ -144,12 +215,16 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
     }
   };
 
+  const getCandidateDisplayName = (c) => {
+    return c?.full_name || `${c?.first_name || ''} ${c?.last_name || ''}`.trim();
+  };
+
   const footer = (
     <>
       <Button variant="outline" onClick={onClose} disabled={isLoading}>
         Cancel
       </Button>
-      <Button onClick={handleSubmit} loading={isLoading} disabled={isLoading}>
+      <Button onClick={handleSubmit} loading={isLoading} disabled={isLoading || !!ncaWarning}>
         {isEditing ? 'Update Submission' : 'Create Submission'}
       </Button>
     </>
@@ -174,6 +249,19 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
           </div>
         )}
 
+        {/* NCA Compliance Warning */}
+        {ncaWarning && (
+          <div className="p-4 bg-amber-50 border border-amber-300 rounded-lg">
+            <div className="flex items-start gap-3">
+              <Icon name="ShieldAlert" size={20} className="text-amber-600 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">NCA Compliance Required</p>
+                <p className="text-sm text-amber-700 mt-1">{ncaWarning}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Candidate & Vendor */}
         <div>
           <h3 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
@@ -192,7 +280,7 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
                 <option value="">Select Candidate</option>
                 {candidates?.map(c => (
                   <option key={c?.id} value={c?.id}>
-                    {c?.first_name} {c?.last_name} ({c?.email})
+                    {getCandidateDisplayName(c)} ({c?.email})
                   </option>
                 ))}
               </Select>
@@ -222,7 +310,7 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
           </div>
         </div>
 
-        {/* Job Details */}
+        {/* Job Details & Technology */}
         <div>
           <h3 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
             <Icon name="Briefcase" size={16} />
@@ -230,13 +318,21 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
-              label="Job Title"
+              label="Job Title *"
               name="job_title"
               value={formData?.job_title}
               onChange={handleInputChange}
               error={errors?.job_title}
               required
               placeholder="Senior Java Developer"
+              disabled={isLoading}
+            />
+            <Input
+              label="Technology"
+              name="technology"
+              value={formData?.technology}
+              onChange={handleInputChange}
+              placeholder="Java, Spring Boot, AWS"
               disabled={isLoading}
             />
             <Input
@@ -250,6 +346,19 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
               placeholder="95.00"
               disabled={isLoading}
             />
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">Submission Source</label>
+              <Select
+                name="submission_source"
+                value={formData?.submission_source}
+                onChange={handleInputChange}
+                disabled={isLoading}
+              >
+                {SUBMISSION_SOURCES.map(s => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </Select>
+            </div>
             <div className="md:col-span-2">
               <label className="text-sm font-medium text-foreground mb-1.5 block">Job Description</label>
               <textarea
@@ -265,6 +374,72 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
           </div>
         </div>
 
+        {/* Location */}
+        <div>
+          <h3 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
+            <Icon name="MapPin" size={16} />
+            Location
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">Location Type</label>
+              <Select
+                name="location_type"
+                value={formData?.location_type}
+                onChange={handleInputChange}
+                disabled={isLoading}
+              >
+                {LOCATION_TYPES.map(l => (
+                  <option key={l.value} value={l.value}>{l.label}</option>
+                ))}
+              </Select>
+            </div>
+            <Input
+              label="Location Detail"
+              name="location_detail"
+              value={formData?.location_detail}
+              onChange={handleInputChange}
+              placeholder="e.g. Dallas, TX or Fully Remote"
+              disabled={isLoading}
+            />
+          </div>
+        </div>
+
+        {/* Vendor Contact Info */}
+        <div>
+          <h3 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
+            <Icon name="Contact" size={16} />
+            Vendor Contact
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Input
+              label="Contact Name"
+              name="vendor_contact_name"
+              value={formData?.vendor_contact_name}
+              onChange={handleInputChange}
+              placeholder="John Smith"
+              disabled={isLoading}
+            />
+            <Input
+              label="Contact Email"
+              type="email"
+              name="vendor_contact_email"
+              value={formData?.vendor_contact_email}
+              onChange={handleInputChange}
+              placeholder="john@vendor.com"
+              disabled={isLoading}
+            />
+            <Input
+              label="Contact Phone"
+              name="vendor_contact_phone"
+              value={formData?.vendor_contact_phone}
+              onChange={handleInputChange}
+              placeholder="(555) 123-4567"
+              disabled={isLoading}
+            />
+          </div>
+        </div>
+
         {/* Submission Details */}
         <div>
           <h3 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
@@ -273,7 +448,7 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input
-              label="Submission Date"
+              label="Submission Date *"
               type="date"
               name="submission_date"
               value={formData?.submission_date}

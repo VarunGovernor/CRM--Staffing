@@ -13,19 +13,18 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
   const isEditing = !!candidate?.id;
 
   const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
+    full_name: '',
     email: '',
     phone: '',
     visa_status: 'h1b',
     status: 'in_market',
+    deal_type: '',
+    payment_terms: '',
     skills: '',
     education: '',
     experience_years: '',
     current_location: '',
     willing_to_relocate: false,
-    pay_rate: '',
-    pay_percentage: '',
     recruiter_id: '',
     linkedin_url: '',
     notes: ''
@@ -41,20 +40,22 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
 
   useEffect(() => {
     if (candidate) {
+      // Support both legacy (first_name + last_name) and new (full_name)
+      const name = candidate?.full_name
+        || `${candidate?.first_name || ''} ${candidate?.last_name || ''}`.trim();
       setFormData({
-        first_name: candidate?.first_name || '',
-        last_name: candidate?.last_name || '',
+        full_name: name,
         email: candidate?.email || '',
         phone: candidate?.phone || '',
         visa_status: candidate?.visa_status || 'h1b',
         status: candidate?.status || 'in_market',
+        deal_type: candidate?.deal_type || '',
+        payment_terms: candidate?.payment_terms || '',
         skills: candidate?.skills?.join(', ') || '',
         education: candidate?.education || '',
         experience_years: candidate?.experience_years?.toString() || '',
         current_location: candidate?.current_location || '',
         willing_to_relocate: candidate?.willing_to_relocate || false,
-        pay_rate: candidate?.pay_rate?.toString() || '',
-        pay_percentage: candidate?.pay_percentage?.toString() || '',
         recruiter_id: candidate?.recruiter_id || '',
         linkedin_url: candidate?.linkedin_url || '',
         notes: candidate?.notes || ''
@@ -75,19 +76,18 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
 
   const resetForm = () => {
     setFormData({
-      first_name: '',
-      last_name: '',
+      full_name: '',
       email: '',
       phone: '',
       visa_status: 'h1b',
       status: 'in_market',
+      deal_type: '',
+      payment_terms: '',
       skills: '',
       education: '',
       experience_years: '',
       current_location: '',
       willing_to_relocate: false,
-      pay_rate: '',
-      pay_percentage: '',
       recruiter_id: user?.id || '',
       linkedin_url: '',
       notes: ''
@@ -110,8 +110,7 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData?.first_name?.trim()) newErrors.first_name = 'First name is required';
-    if (!formData?.last_name?.trim()) newErrors.last_name = 'Last name is required';
+    if (!formData?.full_name?.trim()) newErrors.full_name = 'Candidate name is required';
     if (!formData?.email?.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/?.test(formData?.email)) {
@@ -131,20 +130,26 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
 
     setIsLoading(true);
 
+    // Split full_name back to first_name + last_name for DB compatibility
+    const nameParts = formData?.full_name?.trim()?.split(/\s+/) || [];
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
     const payload = {
-      first_name: formData?.first_name?.trim(),
-      last_name: formData?.last_name?.trim(),
+      full_name: formData?.full_name?.trim(),
+      first_name: firstName,
+      last_name: lastName,
       email: formData?.email?.trim()?.toLowerCase(),
       phone: formData?.phone?.trim(),
       visa_status: formData?.visa_status,
       status: formData?.status,
+      deal_type: formData?.deal_type || null,
+      payment_terms: formData?.payment_terms?.trim() || null,
       skills: formData?.skills?.split(',')?.map(s => s?.trim())?.filter(Boolean) || [],
       education: formData?.education?.trim() || null,
       experience_years: formData?.experience_years ? parseInt(formData?.experience_years) : null,
       current_location: formData?.current_location?.trim() || null,
       willing_to_relocate: formData?.willing_to_relocate,
-      pay_rate: formData?.pay_rate ? parseFloat(formData?.pay_rate) : null,
-      pay_percentage: formData?.pay_percentage ? parseFloat(formData?.pay_percentage) : null,
       recruiter_id: formData?.recruiter_id || null,
       linkedin_url: formData?.linkedin_url?.trim() || null,
       notes: formData?.notes?.trim() || null
@@ -214,24 +219,18 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
             Personal Information
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="First Name"
-              name="first_name"
-              value={formData?.first_name}
-              onChange={handleInputChange}
-              error={errors?.first_name}
-              required
-              disabled={isLoading}
-            />
-            <Input
-              label="Last Name"
-              name="last_name"
-              value={formData?.last_name}
-              onChange={handleInputChange}
-              error={errors?.last_name}
-              required
-              disabled={isLoading}
-            />
+            <div className="md:col-span-2">
+              <Input
+                label="Candidate Name"
+                name="full_name"
+                value={formData?.full_name}
+                onChange={handleInputChange}
+                error={errors?.full_name}
+                placeholder="Full name"
+                required
+                disabled={isLoading}
+              />
+            </div>
             <Input
               label="Email"
               type="email"
@@ -324,13 +323,27 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
           </div>
         </div>
 
-        {/* Location & Compensation */}
+        {/* Deal & Compensation */}
         <div>
           <h3 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
-            <Icon name="MapPin" size={16} />
-            Location & Compensation
+            <Icon name="DollarSign" size={16} />
+            Deal & Compensation
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">Deal Type</label>
+              <Select
+                name="deal_type"
+                value={formData?.deal_type}
+                onChange={handleInputChange}
+                disabled={isLoading}
+              >
+                <option value="">Select Deal Type</option>
+                <option value="full_time">Full-time</option>
+                <option value="w2">W2</option>
+                <option value="c2c">Corp-to-Corp (C2C)</option>
+              </Select>
+            </div>
             <Input
               label="Current Location"
               name="current_location"
@@ -339,7 +352,19 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
               placeholder="City, State"
               disabled={isLoading}
             />
-            <div className="flex items-center space-x-3 pt-6">
+            <div className="md:col-span-2">
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Payment Terms</label>
+              <textarea
+                name="payment_terms"
+                value={formData?.payment_terms}
+                onChange={handleInputChange}
+                rows={3}
+                className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                placeholder="Describe agreed payment installments and time periods..."
+                disabled={isLoading}
+              />
+            </div>
+            <div className="flex items-center space-x-3">
               <input
                 type="checkbox"
                 name="willing_to_relocate"
@@ -353,27 +378,6 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
                 Willing to relocate
               </label>
             </div>
-            <Input
-              label="Pay Rate ($/hr)"
-              type="number"
-              name="pay_rate"
-              value={formData?.pay_rate}
-              onChange={handleInputChange}
-              min="0"
-              step="0.01"
-              disabled={isLoading}
-            />
-            <Input
-              label="Pay Percentage (%)"
-              type="number"
-              name="pay_percentage"
-              value={formData?.pay_percentage}
-              onChange={handleInputChange}
-              min="0"
-              max="100"
-              step="0.01"
-              disabled={isLoading}
-            />
           </div>
         </div>
 

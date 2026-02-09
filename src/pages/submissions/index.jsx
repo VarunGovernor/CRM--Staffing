@@ -19,7 +19,7 @@ const Submissions = () => {
       setLoading(true);
       const { data, error } = await supabase?.from('submissions')?.select(`
           *,
-          candidate:candidates(first_name, last_name, email),
+          candidate:candidates(first_name, last_name, full_name, email),
           vendor:vendors(name, tier),
           sales_person:user_profiles!sales_person_id(full_name)
         `)?.order('submission_date', { ascending: false });
@@ -116,11 +116,11 @@ const Submissions = () => {
                       <tr>
                         <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Candidate</th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Job Title</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Technology</th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Vendor</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Tier</th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Rate</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Source</th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Sales Person</th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Date</th>
                       </tr>
                     </thead>
@@ -130,28 +130,31 @@ const Submissions = () => {
                           <td className="px-6 py-4">
                             <div>
                               <p className="font-medium text-foreground">
-                                {submission?.candidate?.first_name} {submission?.candidate?.last_name}
+                                {submission?.candidate?.full_name || `${submission?.candidate?.first_name} ${submission?.candidate?.last_name}`}
                               </p>
                               <p className="text-sm text-muted-foreground">{submission?.candidate?.email}</p>
                             </div>
                           </td>
                           <td className="px-6 py-4 text-sm text-foreground">{submission?.job_title}</td>
-                          <td className="px-6 py-4 text-sm text-foreground">{submission?.vendor?.name}</td>
+                          <td className="px-6 py-4 text-sm text-foreground">{submission?.technology || '-'}</td>
                           <td className="px-6 py-4">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getTierColor(submission?.vendor?.tier)}`}>
-                              {submission?.vendor?.tier?.replace('_', ' ')?.toUpperCase()}
-                            </span>
+                            <div>
+                              <p className="text-sm text-foreground">{submission?.vendor?.name}</p>
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getTierColor(submission?.vendor?.tier)}`}>
+                                {submission?.vendor?.tier?.replace('_', ' ')?.toUpperCase()}
+                              </span>
+                            </div>
                           </td>
                           <td className="px-6 py-4 text-sm font-medium text-foreground">
-                            ${submission?.rate}/hr
+                            {submission?.rate ? `$${submission?.rate}/hr` : '-'}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-foreground capitalize">
+                            {submission?.submission_source?.replace('_', ' ') || 'Direct'}
                           </td>
                           <td className="px-6 py-4">
                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(submission?.status)}`}>
                               {submission?.status?.replace('_', ' ')?.toUpperCase()}
                             </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-foreground">
-                            {submission?.sales_person?.full_name || 'N/A'}
                           </td>
                           <td className="px-6 py-4 text-sm text-muted-foreground">
                             {new Date(submission?.submission_date)?.toLocaleDateString()}

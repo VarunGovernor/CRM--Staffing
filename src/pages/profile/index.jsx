@@ -22,8 +22,11 @@ const ProfileSettings = () => {
     jobTitle: '',
     timezone: 'America/New_York',
     language: 'en',
-    avatar: ''
+    avatar: '',
+    reportsTo: ''
   });
+
+  const [managerOptions, setManagerOptions] = useState([]);
 
   const [notifications, setNotifications] = useState({
     emailDeals: true,
@@ -59,10 +62,35 @@ const ProfileSettings = () => {
         jobTitle: userProfile.job_title || '',
         timezone: userProfile.timezone || 'America/New_York',
         language: userProfile.language || 'en',
-        avatar: userProfile.avatar_url || ''
+        avatar: userProfile.avatar_url || '',
+        reportsTo: userProfile.reports_to || ''
       }));
     }
   }, [userProfile]);
+
+  // Load potential managers for "Reports To" dropdown
+  useEffect(() => {
+    const fetchManagers = async () => {
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('id, full_name, role')
+        .in('role', ['admin', 'hr', 'sales', 'recruiter'])
+        .eq('is_active', true)
+        .order('full_name');
+
+      if (data) {
+        setManagerOptions(
+          data
+            .filter(m => m.id !== user?.id)
+            .map(m => ({
+              value: m.id,
+              label: `${m.full_name} (${m.role})`
+            }))
+        );
+      }
+    };
+    if (user?.id) fetchManagers();
+  }, [user?.id]);
 
   const timezoneOptions = [
     { value: 'America/New_York', label: 'Eastern Time (ET)' },
@@ -129,7 +157,8 @@ const ProfileSettings = () => {
         phone: profileData.phone,
         job_title: profileData.jobTitle,
         timezone: profileData.timezone,
-        language: profileData.language
+        language: profileData.language,
+        reports_to: profileData.reportsTo || null
       });
       if (error) {
         setSaveMessage({ type: 'error', text: error.message || 'Failed to save profile' });
@@ -287,6 +316,14 @@ const ProfileSettings = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Reports To (Manager) */}
+                <Select
+                  label="Reports To"
+                  options={[{ value: '', label: 'No Manager Assigned' }, ...managerOptions]}
+                  value={profileData.reportsTo}
+                  onChange={(value) => handleProfileChange('reportsTo', value)}
+                />
 
                 {/* Preferences */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

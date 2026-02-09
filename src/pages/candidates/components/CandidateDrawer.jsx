@@ -2,8 +2,24 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../../components/AppIcon';
 
+const DEAL_TYPE_LABELS = {
+  full_time: 'Full-time',
+  w2: 'W2',
+  c2c: 'Corp-to-Corp (C2C)'
+};
+
+const NCA_STATUS_LABELS = {
+  not_started: 'Not Started',
+  downloaded: 'Downloaded',
+  uploaded: 'Uploaded',
+  verified: 'Verified'
+};
+
 const CandidateDrawer = ({ candidate, isOpen, onClose, onEdit }) => {
   if (!candidate) return null;
+
+  const candidateName = candidate?.full_name
+    || `${candidate?.first_name || ''} ${candidate?.last_name || ''}`.trim();
 
   const getStatusColor = (status) => {
     const colors = {
@@ -29,11 +45,20 @@ const CandidateDrawer = ({ candidate, isOpen, onClose, onEdit }) => {
     return colors?.[visa] || 'bg-gray-100 text-gray-700';
   };
 
+  const getNcaColor = (status) => {
+    const colors = {
+      'not_started': 'bg-gray-100 text-gray-700',
+      'downloaded': 'bg-yellow-100 text-yellow-700',
+      'uploaded': 'bg-blue-100 text-blue-700',
+      'verified': 'bg-green-100 text-green-700'
+    };
+    return colors?.[status] || 'bg-gray-100 text-gray-700';
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -42,7 +67,6 @@ const CandidateDrawer = ({ candidate, isOpen, onClose, onEdit }) => {
             className="fixed inset-0 bg-black/50 z-40"
           />
 
-          {/* Drawer */}
           <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
@@ -57,9 +81,7 @@ const CandidateDrawer = ({ candidate, isOpen, onClose, onEdit }) => {
                   <Icon name="User" size={32} className="text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground">
-                    {candidate?.first_name} {candidate?.last_name}
-                  </h2>
+                  <h2 className="text-2xl font-bold text-foreground">{candidateName}</h2>
                   <p className="text-muted-foreground">{candidate?.email}</p>
                 </div>
               </div>
@@ -84,8 +106,8 @@ const CandidateDrawer = ({ candidate, isOpen, onClose, onEdit }) => {
 
             {/* Content */}
             <div className="p-6 space-y-6">
-              {/* Status & Visa */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Status, Visa & Deal Type */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground mb-2">Status</p>
                   <span className={`px-4 py-2 rounded-full text-sm font-medium inline-block ${getStatusColor(candidate?.status)}`}>
@@ -97,6 +119,39 @@ const CandidateDrawer = ({ candidate, isOpen, onClose, onEdit }) => {
                   <span className={`px-4 py-2 rounded-full text-sm font-medium inline-block ${getVisaColor(candidate?.visa_status)}`}>
                     {candidate?.visa_status?.toUpperCase()}
                   </span>
+                </div>
+                {candidate?.deal_type && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Deal Type</p>
+                    <span className="px-4 py-2 rounded-full text-sm font-medium inline-block bg-primary/10 text-primary">
+                      {DEAL_TYPE_LABELS[candidate.deal_type] || candidate.deal_type}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* NCA Compliance Status */}
+              <div className="bg-muted/30 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Icon name="Shield" size={20} className="text-primary" />
+                  NCA Compliance
+                </h3>
+                <div className="flex items-center gap-3">
+                  <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${getNcaColor(candidate?.nca_status)}`}>
+                    {NCA_STATUS_LABELS[candidate?.nca_status] || 'Not Started'}
+                  </span>
+                  {candidate?.nca_status !== 'uploaded' && candidate?.nca_status !== 'verified' && (
+                    <span className="text-xs text-warning font-medium flex items-center gap-1">
+                      <Icon name="AlertTriangle" size={14} />
+                      NCA required before marketing
+                    </span>
+                  )}
+                  {(candidate?.nca_status === 'uploaded' || candidate?.nca_status === 'verified') && (
+                    <span className="text-xs text-success font-medium flex items-center gap-1">
+                      <Icon name="CheckCircle" size={14} />
+                      Cleared for marketing
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -144,26 +199,27 @@ const CandidateDrawer = ({ candidate, isOpen, onClose, onEdit }) => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Experience</p>
-                    <p className="text-sm text-foreground font-medium">{candidate?.experience_years} years</p>
+                    <p className="text-sm text-foreground font-medium">
+                      {candidate?.experience_years != null ? `${candidate.experience_years} years` : 'Not specified'}
+                    </p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Days in Market</p>
                     <p className="text-sm text-foreground font-medium">{candidate?.days_in_market} days</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Pay Rate</p>
-                    <p className="text-sm text-foreground font-medium">
-                      {candidate?.pay_rate ? `$${candidate?.pay_rate}/hr` : 'Not specified'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Pay Percentage</p>
-                    <p className="text-sm text-foreground font-medium">
-                      {candidate?.pay_percentage ? `${candidate?.pay_percentage}%` : 'Not specified'}
-                    </p>
-                  </div>
                 </div>
               </div>
+
+              {/* Payment Terms */}
+              {candidate?.payment_terms && (
+                <div className="bg-muted/30 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <Icon name="DollarSign" size={20} className="text-primary" />
+                    Payment Terms
+                  </h3>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{candidate.payment_terms}</p>
+                </div>
+              )}
 
               {/* Skills */}
               <div className="bg-muted/30 rounded-xl p-6">

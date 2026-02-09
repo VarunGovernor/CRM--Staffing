@@ -5,14 +5,34 @@ import Sidebar from '../../components/ui/Sidebar';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import Select from '../../components/ui/Select';
+import Modal from '../../components/ui/Modal';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 const PayrollPage = () => {
+  const { user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('payroll');
   const [payrollData, setPayrollData] = useState([]);
   const [timesheetData, setTimesheetData] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // C2C Timesheet state
+  const [c2cTimesheets, setC2cTimesheets] = useState([]);
+  const [c2cCandidates, setC2cCandidates] = useState([]);
+  const [c2cLoading, setC2cLoading] = useState(true);
+  const [timesheetModalOpen, setTimesheetModalOpen] = useState(false);
+  const [timesheetForm, setTimesheetForm] = useState({
+    candidate_id: '',
+    period_start: '',
+    period_end: '',
+    hours_worked: '',
+    screenshot_url: '',
+    notes: ''
+  });
+  const [timesheetErrors, setTimesheetErrors] = useState({});
+  const [timesheetSaving, setTimesheetSaving] = useState(false);
 
   // Payment modal state
   const [paymentModal, setPaymentModal] = useState({ isOpen: false, employee: null });
@@ -21,6 +41,7 @@ const PayrollPage = () => {
 
   useEffect(() => {
     fetchData();
+    fetchC2cData();
   }, []);
 
   const fetchData = async () => {
@@ -62,6 +83,87 @@ const PayrollPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchC2cData = async () => {
+    setC2cLoading(true);
+    try {
+      const [candidatesRes, timesheetsRes] = await Promise.all([
+        supabase?.from('candidates')?.select('id, first_name, last_name, full_name, email')?.eq('deal_type', 'c2c')?.order('full_name'),
+        supabase?.from('timesheets')?.select(`
+          *,
+          candidate:candidates(id, first_name, last_name, full_name, email),
+          submitted_by_user:user_profiles!submitted_by(full_name),
+          approved_by_user:user_profiles!approved_by(full_name)
+        `)?.order('period_start', { ascending: false })
+      ]);
+
+      setC2cCandidates(candidatesRes?.data || []);
+      setC2cTimesheets(timesheetsRes?.data || []);
+    } catch (error) {
+      console.error('Error fetching C2C data:', error);
+    } finally {
+      setC2cLoading(false);
+    }
+  };
+
+  const handleTimesheetFormChange = (e) => {
+    const { name, value } = e.target;
+    setTimesheetForm(prev => ({ ...prev, [name]: value }));
+    if (timesheetErrors[name]) {
+      setTimesheetErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleTimesheetSubmit = async () => {
+    const errors = {};
+    if (!timesheetForm.candidate_id) errors.candidate_id = 'Candidate is required';
+    if (!timesheetForm.period_start) errors.period_start = 'Start date is required';
+    if (!timesheetForm.period_end) errors.period_end = 'End date is required';
+    if (!timesheetForm.hours_worked) errors.hours_worked = 'Hours are required';
+
+    if (Object.keys(errors).length > 0) {
+      setTimesheetErrors(errors);
+      return;
+    }
+
+    setTimesheetSaving(true);
+    try {
+      const { error } = await supabase.from('timesheets').insert({
+        candidate_id: timesheetForm.candidate_id,
+        period_start: timesheetForm.period_start,
+        period_end: timesheetForm.period_end,
+        hours_worked: parseFloat(timesheetForm.hours_worked),
+        screenshot_url: timesheetForm.screenshot_url?.trim() || null,
+        notes: timesheetForm.notes?.trim() || null,
+        submitted_by: user?.id
+      });
+
+      if (!error) {
+        setTimesheetModalOpen(false);
+        setTimesheetForm({ candidate_id: '', period_start: '', period_end: '', hours_worked: '', screenshot_url: '', notes: '' });
+        setTimesheetErrors({});
+        fetchC2cData();
+      }
+    } catch (error) {
+      console.error('Error submitting timesheet:', error);
+    } finally {
+      setTimesheetSaving(false);
+    }
+  };
+
+  const handleApproveTimesheet = async (timesheetId) => {
+    const { error } = await supabase.from('timesheets').update({
+      is_approved: true,
+      approved_by: user?.id,
+      approved_at: new Date().toISOString()
+    }).eq('id', timesheetId);
+
+    if (!error) fetchC2cData();
+  };
+
+  const getCandidateDisplayName = (c) => {
+    return c?.full_name || `${c?.first_name || ''} ${c?.last_name || ''}`.trim();
   };
 
   const getRandomTime = (minHour, maxHour) => {
@@ -198,6 +300,16 @@ const PayrollPage = () => {
                   }`}
                 >
                   DAILY TIMESHEET LOGS
+                </button>
+                <button
+                  onClick={() => setActiveTab('c2c')}
+                  className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === 'c2c'
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  C2C TIMESHEETS
                 </button>
               </div>
             </div>
@@ -361,11 +473,237 @@ const PayrollPage = () => {
                     </div>
                   </div>
                 )}
+                {/* C2C Timesheets Tab */}
+                {activeTab === 'c2c' && (
+                  <div>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">
+                          Manage timesheets for Corp-to-Corp (C2C) candidates. Upload hours worked per period for invoicing.
+                        </p>
+                      </div>
+                      <Button onClick={() => setTimesheetModalOpen(true)} className="flex items-center gap-2 shrink-0">
+                        <Icon name="Plus" size={16} />
+                        Submit Timesheet
+                      </Button>
+                    </div>
+
+                    {/* C2C Stats */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                      <div className="bg-card p-5 rounded-xl border border-border">
+                        <p className="text-xs text-muted-foreground mb-1">Total Entries</p>
+                        <p className="text-2xl font-bold text-foreground">{c2cTimesheets.length}</p>
+                      </div>
+                      <div className="bg-card p-5 rounded-xl border border-border">
+                        <p className="text-xs text-muted-foreground mb-1">Pending Approval</p>
+                        <p className="text-2xl font-bold text-amber-600">
+                          {c2cTimesheets.filter(t => !t.is_approved).length}
+                        </p>
+                      </div>
+                      <div className="bg-card p-5 rounded-xl border border-border">
+                        <p className="text-xs text-muted-foreground mb-1">Approved</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {c2cTimesheets.filter(t => t.is_approved).length}
+                        </p>
+                      </div>
+                      <div className="bg-card p-5 rounded-xl border border-border">
+                        <p className="text-xs text-muted-foreground mb-1">Total Hours</p>
+                        <p className="text-2xl font-bold text-primary">
+                          {c2cTimesheets.reduce((sum, t) => sum + (parseFloat(t.hours_worked) || 0), 0).toFixed(1)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {c2cLoading ? (
+                      <div className="flex items-center justify-center h-64">
+                        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    ) : (
+                      <div className="bg-card rounded-xl border border-border overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead className="bg-muted/50 border-b border-border">
+                              <tr>
+                                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Candidate</th>
+                                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Period</th>
+                                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Hours</th>
+                                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Screenshot</th>
+                                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Submitted By</th>
+                                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
+                                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                              {c2cTimesheets.map((ts) => (
+                                <tr key={ts.id} className="hover:bg-muted/30 transition-colors">
+                                  <td className="px-6 py-4">
+                                    <div>
+                                      <p className="font-medium text-foreground">
+                                        {getCandidateDisplayName(ts.candidate)}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">{ts.candidate?.email}</p>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4 text-sm text-foreground">
+                                    {ts.period_start && ts.period_end
+                                      ? `${new Date(ts.period_start).toLocaleDateString()} - ${new Date(ts.period_end).toLocaleDateString()}`
+                                      : '-'
+                                    }
+                                  </td>
+                                  <td className="px-6 py-4 text-sm font-medium text-foreground">
+                                    {ts.hours_worked} hrs
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    {ts.screenshot_url ? (
+                                      <a
+                                        href={ts.screenshot_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-primary hover:text-primary/80 flex items-center gap-1 text-sm"
+                                      >
+                                        <Icon name="Image" size={14} />
+                                        View
+                                      </a>
+                                    ) : (
+                                      <span className="text-muted-foreground text-sm">-</span>
+                                    )}
+                                  </td>
+                                  <td className="px-6 py-4 text-sm text-foreground">
+                                    {ts.submitted_by_user?.full_name || '-'}
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    {ts.is_approved ? (
+                                      <span className="flex items-center text-green-600 text-xs font-medium gap-1">
+                                        <Icon name="CheckCircle" size={14} />
+                                        Approved
+                                      </span>
+                                    ) : (
+                                      <span className="flex items-center text-amber-600 text-xs font-medium gap-1">
+                                        <Icon name="Clock" size={14} />
+                                        Pending
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    {!ts.is_approved && (
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleApproveTimesheet(ts.id)}
+                                        className="flex items-center gap-1"
+                                      >
+                                        <Icon name="Check" size={14} />
+                                        Approve
+                                      </Button>
+                                    )}
+                                    {ts.is_approved && (
+                                      <span className="text-xs text-muted-foreground">
+                                        {ts.approved_by_user?.full_name} on {ts.approved_at ? new Date(ts.approved_at).toLocaleDateString() : ''}
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                              {c2cTimesheets.length === 0 && (
+                                <tr>
+                                  <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
+                                    No C2C timesheets submitted yet
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </>
             )}
           </motion.div>
         </div>
       </main>
+
+      {/* C2C Timesheet Modal */}
+      <Modal
+        isOpen={timesheetModalOpen}
+        onClose={() => { setTimesheetModalOpen(false); setTimesheetErrors({}); }}
+        title="Submit C2C Timesheet"
+        description="Record hours worked by a C2C candidate for invoicing"
+        size="md"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setTimesheetModalOpen(false)} disabled={timesheetSaving}>Cancel</Button>
+            <Button onClick={handleTimesheetSubmit} loading={timesheetSaving} disabled={timesheetSaving}>Submit Timesheet</Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">C2C Candidate *</label>
+            <Select name="candidate_id" value={timesheetForm.candidate_id} onChange={handleTimesheetFormChange}>
+              <option value="">Select C2C Candidate</option>
+              {c2cCandidates.map(c => (
+                <option key={c.id} value={c.id}>{getCandidateDisplayName(c)} ({c.email})</option>
+              ))}
+            </Select>
+            {timesheetErrors.candidate_id && <p className="text-xs text-red-500">{timesheetErrors.candidate_id}</p>}
+            {c2cCandidates.length === 0 && (
+              <p className="text-xs text-amber-600">No C2C candidates found. Set a candidate's deal type to C2C first.</p>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Input
+                label="Period Start *"
+                type="date"
+                name="period_start"
+                value={timesheetForm.period_start}
+                onChange={handleTimesheetFormChange}
+                error={timesheetErrors.period_start}
+              />
+            </div>
+            <div>
+              <Input
+                label="Period End *"
+                type="date"
+                name="period_end"
+                value={timesheetForm.period_end}
+                onChange={handleTimesheetFormChange}
+                error={timesheetErrors.period_end}
+              />
+            </div>
+          </div>
+          <Input
+            label="Hours Worked *"
+            type="number"
+            name="hours_worked"
+            value={timesheetForm.hours_worked}
+            onChange={handleTimesheetFormChange}
+            error={timesheetErrors.hours_worked}
+            placeholder="e.g. 80"
+            min="0"
+            step="0.5"
+          />
+          <Input
+            label="Screenshot URL"
+            name="screenshot_url"
+            value={timesheetForm.screenshot_url}
+            onChange={handleTimesheetFormChange}
+            placeholder="Paste link to timesheet screenshot"
+          />
+          <div>
+            <label className="text-sm font-medium text-foreground mb-1.5 block">Notes</label>
+            <textarea
+              name="notes"
+              value={timesheetForm.notes}
+              onChange={handleTimesheetFormChange}
+              rows={2}
+              className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+              placeholder="Additional notes..."
+            />
+          </div>
+        </div>
+      </Modal>
 
       {/* Payment Modal */}
       <AnimatePresence>

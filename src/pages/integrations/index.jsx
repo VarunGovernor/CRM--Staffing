@@ -16,10 +16,11 @@ const IntegrationsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const categories = [
-  { id: 'all', name: 'All Integrations', count: 12 },
+  { id: 'all', name: 'All Integrations', count: 13 },
   { id: 'email', name: 'Email & Calendar', count: 3 },
   { id: 'communication', name: 'Communication', count: 2 },
   { id: 'payments', name: 'Payments', count: 2 },
+  { id: 'accounting', name: 'Accounting', count: 1 },
   { id: 'productivity', name: 'Productivity', count: 3 },
   { id: 'analytics', name: 'Analytics', count: 2 }];
 
@@ -194,6 +195,25 @@ const IntegrationsPage = () => {
     lastSync: null,
     syncFrequency: 'Real-time',
     isPopular: false,
+    notifications: []
+  },
+  {
+    id: 'quickbooks',
+    name: 'QuickBooks',
+    category: 'accounting',
+    logo: "https://images.unsplash.com/photo-1554224155-6726b3ff858f",
+    description: 'Sync invoices, payments, and financial data with QuickBooks for streamlined C2C and W2 payroll accounting.',
+    features: [
+    'Invoice sync',
+    'Payment tracking',
+    'Expense management',
+    'Financial reporting'],
+    isConnected: false,
+    status: 'coming_soon',
+    statusText: 'Coming Soon — Phase 2',
+    lastSync: null,
+    syncFrequency: 'Every hour',
+    isPopular: true,
     notifications: []
   }];
 
