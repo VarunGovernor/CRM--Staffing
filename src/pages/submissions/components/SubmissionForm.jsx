@@ -42,6 +42,8 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
     vendor_contact_name: '',
     vendor_contact_email: '',
     vendor_contact_phone: '',
+    // Client
+    client_name: '',
     // Location
     location_type: 'remote',
     location_detail: '',
@@ -76,6 +78,7 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
         vendor_contact_name: submission?.vendor_contact_name || '',
         vendor_contact_email: submission?.vendor_contact_email || '',
         vendor_contact_phone: submission?.vendor_contact_phone || '',
+        client_name: submission?.client_name || '',
         location_type: submission?.location_type || 'remote',
         location_detail: submission?.location_detail || '',
         submission_source: submission?.submission_source || 'direct',
@@ -126,6 +129,7 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
       vendor_contact_name: '',
       vendor_contact_email: '',
       vendor_contact_phone: '',
+      client_name: '',
       location_type: 'remote',
       location_detail: '',
       submission_source: 'direct',
@@ -187,6 +191,7 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
       vendor_contact_name: formData?.vendor_contact_name?.trim() || null,
       vendor_contact_email: formData?.vendor_contact_email?.trim() || null,
       vendor_contact_phone: formData?.vendor_contact_phone?.trim() || null,
+      client_name: formData?.client_name?.trim() || null,
       location_type: formData?.location_type || 'remote',
       location_detail: formData?.location_detail?.trim() || null,
       submission_source: formData?.submission_source || 'direct',
@@ -333,6 +338,14 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
               value={formData?.technology}
               onChange={handleInputChange}
               placeholder="Java, Spring Boot, AWS"
+              disabled={isLoading}
+            />
+            <Input
+              label="Client Name"
+              name="client_name"
+              value={formData?.client_name}
+              onChange={handleInputChange}
+              placeholder="End client company"
               disabled={isLoading}
             />
             <Input

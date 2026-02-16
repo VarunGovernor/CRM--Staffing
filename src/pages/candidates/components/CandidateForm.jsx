@@ -16,7 +16,12 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
     full_name: '',
     email: '',
     phone: '',
+    alternate_phone: '',
+    emergency_contact: '',
+    date_of_birth: '',
+    full_address: '',
     visa_status: 'h1b',
+    visa_copy_url: '',
     status: 'in_market',
     deal_type: '',
     payment_terms: '',
@@ -25,8 +30,10 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
     experience_years: '',
     current_location: '',
     willing_to_relocate: false,
+    relocation_places: '',
     recruiter_id: '',
     linkedin_url: '',
+    nca_document_url: '',
     notes: ''
   });
 
@@ -47,7 +54,12 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
         full_name: name,
         email: candidate?.email || '',
         phone: candidate?.phone || '',
+        alternate_phone: candidate?.alternate_phone || '',
+        emergency_contact: candidate?.emergency_contact || '',
+        date_of_birth: candidate?.date_of_birth || '',
+        full_address: candidate?.full_address || '',
         visa_status: candidate?.visa_status || 'h1b',
+        visa_copy_url: candidate?.visa_copy_url || '',
         status: candidate?.status || 'in_market',
         deal_type: candidate?.deal_type || '',
         payment_terms: candidate?.payment_terms || '',
@@ -56,8 +68,10 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
         experience_years: candidate?.experience_years?.toString() || '',
         current_location: candidate?.current_location || '',
         willing_to_relocate: candidate?.willing_to_relocate || false,
+        relocation_places: candidate?.relocation_places || '',
         recruiter_id: candidate?.recruiter_id || '',
         linkedin_url: candidate?.linkedin_url || '',
+        nca_document_url: candidate?.nca_document_url || '',
         notes: candidate?.notes || ''
       });
     } else {
@@ -79,7 +93,12 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
       full_name: '',
       email: '',
       phone: '',
+      alternate_phone: '',
+      emergency_contact: '',
+      date_of_birth: '',
+      full_address: '',
       visa_status: 'h1b',
+      visa_copy_url: '',
       status: 'in_market',
       deal_type: '',
       payment_terms: '',
@@ -88,8 +107,10 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
       experience_years: '',
       current_location: '',
       willing_to_relocate: false,
+      relocation_places: '',
       recruiter_id: user?.id || '',
       linkedin_url: '',
+      nca_document_url: '',
       notes: ''
     });
     setErrors({});
@@ -141,7 +162,12 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
       last_name: lastName,
       email: formData?.email?.trim()?.toLowerCase(),
       phone: formData?.phone?.trim(),
+      alternate_phone: formData?.alternate_phone?.trim() || null,
+      emergency_contact: formData?.emergency_contact?.trim() || null,
+      date_of_birth: formData?.date_of_birth || null,
+      full_address: formData?.full_address?.trim() || null,
       visa_status: formData?.visa_status,
+      visa_copy_url: formData?.visa_copy_url?.trim() || null,
       status: formData?.status,
       deal_type: formData?.deal_type || null,
       payment_terms: formData?.payment_terms?.trim() || null,
@@ -150,8 +176,10 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
       experience_years: formData?.experience_years ? parseInt(formData?.experience_years) : null,
       current_location: formData?.current_location?.trim() || null,
       willing_to_relocate: formData?.willing_to_relocate,
+      relocation_places: formData?.relocation_places?.trim() || null,
       recruiter_id: formData?.recruiter_id || null,
       linkedin_url: formData?.linkedin_url?.trim() || null,
+      nca_document_url: formData?.nca_document_url?.trim() || null,
       notes: formData?.notes?.trim() || null
     };
 
@@ -250,6 +278,40 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
               required
               disabled={isLoading}
             />
+            <Input
+              label="Alternate Contact No"
+              name="alternate_phone"
+              value={formData?.alternate_phone}
+              onChange={handleInputChange}
+              placeholder="Alternate phone number"
+              disabled={isLoading}
+            />
+            <Input
+              label="Emergency Contact No"
+              name="emergency_contact"
+              value={formData?.emergency_contact}
+              onChange={handleInputChange}
+              placeholder="Emergency contact number"
+              disabled={isLoading}
+            />
+            <Input
+              label="Date of Birth"
+              type="date"
+              name="date_of_birth"
+              value={formData?.date_of_birth}
+              onChange={handleInputChange}
+              disabled={isLoading}
+            />
+            <div className="md:col-span-2">
+              <Input
+                label="Full Address"
+                name="full_address"
+                value={formData?.full_address}
+                onChange={handleInputChange}
+                placeholder="Street, City, State, ZIP"
+                disabled={isLoading}
+              />
+            </div>
           </div>
         </div>
 
@@ -277,6 +339,14 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
                 <option value="ead">EAD</option>
               </Select>
             </div>
+            <Input
+              label="VISA Copy URL"
+              name="visa_copy_url"
+              value={formData?.visa_copy_url}
+              onChange={handleInputChange}
+              placeholder="Paste link to VISA document"
+              disabled={isLoading}
+            />
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">Status</label>
               <Select
@@ -364,7 +434,15 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
                 disabled={isLoading}
               />
             </div>
-            <div className="flex items-center space-x-3">
+            <Input
+              label="NCA Signed Document URL"
+              name="nca_document_url"
+              value={formData?.nca_document_url}
+              onChange={handleInputChange}
+              placeholder="Paste link to signed NCA document"
+              disabled={isLoading}
+            />
+            <div className="flex items-center space-x-3 pt-6">
               <input
                 type="checkbox"
                 name="willing_to_relocate"
@@ -378,6 +456,18 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
                 Willing to relocate
               </label>
             </div>
+            {formData?.willing_to_relocate && (
+              <div className="md:col-span-2">
+                <Input
+                  label="Places Willing to Relocate"
+                  name="relocation_places"
+                  value={formData?.relocation_places}
+                  onChange={handleInputChange}
+                  placeholder="e.g. Dallas TX, Chicago IL, New York NY"
+                  disabled={isLoading}
+                />
+              </div>
+            )}
           </div>
         </div>
 

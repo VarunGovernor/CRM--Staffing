@@ -19,8 +19,8 @@ const LoginPage = () => {
   return (
     <>
       <Helmet>
-        <title>Sign In - CRMPro</title>
-        <meta name="description" content="Sign in to your CRMPro account to access your sales pipeline, customer data, and CRM tools." />
+        <title>Sign In - San Synapse-CRM</title>
+        <meta name="description" content="Sign in to your San Synapse-CRM account to access your sales pipeline, customer data, and CRM tools." />
       </Helmet>
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         {/* Background Pattern */}
@@ -43,7 +43,7 @@ const LoginPage = () => {
           {/* Footer */}
           <div className="mt-6 text-center">
             <p className="text-xs text-muted-foreground">
-              © {new Date()?.getFullYear()} CRMPro. All rights reserved.
+              © {new Date()?.getFullYear()} San Synapse-CRM. All rights reserved.
             </p>
           </div>
         </div>

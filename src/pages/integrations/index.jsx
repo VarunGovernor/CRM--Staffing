@@ -119,7 +119,7 @@ const IntegrationsPage = () => {
     name: 'Zapier',
     category: 'productivity',
     logo: "https://images.unsplash.com/photo-1648134859182-98df6e93ef58",
-    description: 'Connect CRMPro with 5000+ apps through Zapier to automate your workflows and boost productivity.',
+    description: 'Connect San Synapse-CRM with 5000+ apps through Zapier to automate your workflows and boost productivity.',
     features: [
     'Workflow automation',
     '5000+ app connections',
@@ -139,7 +139,7 @@ const IntegrationsPage = () => {
     name: 'HubSpot',
     category: 'productivity',
     logo: "https://images.unsplash.com/photo-1632518193201-72278769704a",
-    description: 'Migrate and sync data between HubSpot and CRMPro for unified customer relationship management.',
+    description: 'Migrate and sync data between HubSpot and San Synapse-CRM for unified customer relationship management.',
     features: [
     'Data migration',
     'Contact sync',
@@ -159,7 +159,7 @@ const IntegrationsPage = () => {
     name: 'Mailchimp',
     category: 'email',
     logo: "https://images.unsplash.com/photo-1680459575540-2bbdf72151c2",
-    description: 'Sync your email marketing campaigns and subscriber data with CRMPro for better lead nurturing.',
+    description: 'Sync your email marketing campaigns and subscriber data with San Synapse-CRM for better lead nurturing.',
     features: [
     'Email campaign sync',
     'Subscriber management',
@@ -182,7 +182,7 @@ const IntegrationsPage = () => {
     name: 'Zoom',
     category: 'communication',
     logo: "https://images.unsplash.com/photo-1585418052482-a987e68cef2c",
-    description: 'Schedule and track Zoom meetings directly from CRMPro with automatic meeting notes and recordings.',
+    description: 'Schedule and track Zoom meetings directly from San Synapse-CRM with automatic meeting notes and recordings.',
     features: [
     'Meeting scheduling',
     'Automatic recordings',

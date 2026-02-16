@@ -18,7 +18,7 @@ const RightRail = () => {
     },
     {
       title: 'Share Feedback',
-      description: 'Help us improve CRMPro',
+      description: 'Help us improve San Synapse-CRM',
       icon: 'MessageSquare',
       action: () => console.log('Feedback clicked')
     }

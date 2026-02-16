@@ -91,7 +91,7 @@ const Reports = () => {
   return (
     <>
       <Helmet>
-        <title>Reports - CRMPro</title>
+        <title>Reports - San Synapse-CRM</title>
         <meta name="description" content="Comprehensive sales analytics with interactive visualizations and export capabilities for data-driven decision making" />
       </Helmet>
       <div className="min-h-screen bg-background">

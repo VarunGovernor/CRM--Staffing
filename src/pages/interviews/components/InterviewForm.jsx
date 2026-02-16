@@ -13,6 +13,8 @@ const InterviewForm = ({ isOpen, onClose, interview, onSuccess }) => {
   const [formData, setFormData] = useState({
     submission_id: '',
     candidate_id: '',
+    technology: '',
+    client_name: '',
     interview_date: '',
     interview_time: '',
     interview_mode: 'video',
@@ -37,6 +39,8 @@ const InterviewForm = ({ isOpen, onClose, interview, onSuccess }) => {
       setFormData({
         submission_id: interview?.submission_id || '',
         candidate_id: interview?.candidate_id || '',
+        technology: interview?.technology || '',
+        client_name: interview?.client_name || '',
         interview_date: interview?.interview_date || '',
         interview_time: interview?.interview_time || '',
         interview_mode: interview?.interview_mode || 'video',
@@ -71,6 +75,8 @@ const InterviewForm = ({ isOpen, onClose, interview, onSuccess }) => {
     setFormData({
       submission_id: '',
       candidate_id: '',
+      technology: '',
+      client_name: '',
       interview_date: '',
       interview_time: '',
       interview_mode: 'video',
@@ -137,6 +143,8 @@ const InterviewForm = ({ isOpen, onClose, interview, onSuccess }) => {
     const payload = {
       submission_id: formData?.submission_id,
       candidate_id: candidateId,
+      technology: formData?.technology?.trim() || null,
+      client_name: formData?.client_name?.trim() || null,
       interview_date: formData?.interview_date,
       interview_time: formData?.interview_time,
       interview_mode: formData?.interview_mode,
@@ -223,6 +231,32 @@ const InterviewForm = ({ isOpen, onClose, interview, onSuccess }) => {
             {errors?.submission_id && (
               <p className="text-xs text-red-500">{errors?.submission_id}</p>
             )}
+          </div>
+        </div>
+
+        {/* Technology & Client */}
+        <div>
+          <h3 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
+            <Icon name="Briefcase" size={16} />
+            Technology & Client
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="Technology"
+              name="technology"
+              value={formData?.technology}
+              onChange={handleInputChange}
+              placeholder="Java, React, AWS..."
+              disabled={isLoading}
+            />
+            <Input
+              label="Client Name"
+              name="client_name"
+              value={formData?.client_name}
+              onChange={handleInputChange}
+              placeholder="End client company"
+              disabled={isLoading}
+            />
           </div>
         </div>
 
@@ -317,9 +351,8 @@ const InterviewForm = ({ isOpen, onClose, interview, onSuccess }) => {
           </div>
         </div>
 
-        {/* Feedback & Result (for editing) */}
-        {isEditing && (
-          <div>
+        {/* Feedback & Result */}
+        <div>
             <h3 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
               <Icon name="MessageSquare" size={16} />
               Feedback & Result
@@ -347,7 +380,6 @@ const InterviewForm = ({ isOpen, onClose, interview, onSuccess }) => {
               />
             </div>
           </div>
-        )}
       </form>
     </Modal>
   );

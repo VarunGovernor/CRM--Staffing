@@ -301,7 +301,7 @@ const DealsPage = () => {
   return (
     <>
       <Helmet>
-        <title>Deals - CRMPro</title>
+        <title>Deals - San Synapse-CRM</title>
         <meta name="description" content="Manage and track your sales deals with comprehensive filtering and pipeline management tools." />
       </Helmet>
       <div className="min-h-screen bg-background">

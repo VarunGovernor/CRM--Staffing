@@ -30,7 +30,7 @@ const UpgradeCard = ({ onUpgrade }) => {
           </div>
           <div>
             <h3 className="text-xl font-bold">Upgrade to Premium</h3>
-            <p className="text-primary-foreground/80">Unlock the full potential of CRMPro</p>
+            <p className="text-primary-foreground/80">Unlock the full potential of San Synapse-CRM</p>
           </div>
         </div>
 

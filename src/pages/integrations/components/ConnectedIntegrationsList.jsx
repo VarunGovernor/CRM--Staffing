@@ -14,7 +14,7 @@ const ConnectedIntegrationsList = ({ integrations, onDisconnect, onConfigure }) 
         </div>
         <h3 className="font-semibold text-card-foreground mb-2">No Connected Integrations</h3>
         <p className="text-muted-foreground">
-          Connect your first integration to start syncing data with CRMPro.
+          Connect your first integration to start syncing data with San Synapse-CRM.
         </p>
       </div>
     );

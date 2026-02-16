@@ -261,9 +261,9 @@ const Header = ({ onMenuToggle, isSidebarOpen = false }) => {
                 <Icon name="Zap" size={20} color="white" />
               </div>
               <div className="flex items-center space-x-2">
-                <span className="text-lg font-semibold text-foreground">CRMPro</span>
+                <span className="text-lg font-semibold text-foreground">San Synapse-CRM</span>
                 <span className="px-2 py-0.5 text-xs font-medium bg-accent text-accent-foreground rounded-full">
-                  v2.1
+                  v2.2
                 </span>
               </div>
             </div>
@@ -274,9 +274,9 @@ const Header = ({ onMenuToggle, isSidebarOpen = false }) => {
                 <Icon name="Zap" size={20} color="white" />
               </div>
               <div className="flex items-center space-x-2">
-                <span className="text-lg font-semibold text-foreground">CRMPro</span>
+                <span className="text-lg font-semibold text-foreground">San Synapse-CRM</span>
                 <span className="px-2 py-0.5 text-xs font-medium bg-accent text-accent-foreground rounded-full">
-                  v2.1
+                  v2.2
                 </span>
               </div>
             </div>

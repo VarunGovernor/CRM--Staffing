@@ -12,7 +12,7 @@ const SetupWizard = ({ integration, isOpen, onClose, onComplete }) => {
   const steps = [
     {
       title: "Authorization",
-      description: "Grant CRMPro access to your account",
+      description: "Grant San Synapse-CRM access to your account",
       content: (
         <div className="text-center space-y-4">
           <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center mx-auto">
@@ -63,7 +63,7 @@ const SetupWizard = ({ integration, isOpen, onClose, onComplete }) => {
               {integration?.name} Connected Successfully!
             </h3>
             <p className="text-muted-foreground">
-              Your {integration?.name} account is now connected and syncing with CRMPro.
+              Your {integration?.name} account is now connected and syncing with San Synapse-CRM.
             </p>
           </div>
         </div>

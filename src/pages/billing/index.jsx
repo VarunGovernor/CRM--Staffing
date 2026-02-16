@@ -235,8 +235,8 @@ const BillingPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>Billing & Subscription - CRMPro</title>
-        <meta name="description" content="Manage your CRMPro subscription, view usage metrics, and handle billing information" />
+        <title>Billing & Subscription - San Synapse-CRM</title>
+        <meta name="description" content="Manage your San Synapse-CRM subscription, view usage metrics, and handle billing information" />
       </Helmet>
       <Header onMenuToggle={handleMenuToggle} isSidebarOpen={isSidebarOpen} />
       <Sidebar isOpen={isSidebarOpen} onClose={handleSidebarClose} />

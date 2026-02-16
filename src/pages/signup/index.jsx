@@ -18,8 +18,8 @@ const SignupPage = () => {
   return (
     <>
       <Helmet>
-        <title>Sign Up - CRMPro</title>
-        <meta name="description" content="Create your CRMPro account to access staffing and recruitment tools." />
+        <title>Sign Up - San Synapse-CRM</title>
+        <meta name="description" content="Create your San Synapse-CRM account to access staffing and recruitment tools." />
       </Helmet>
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5" />
@@ -33,7 +33,7 @@ const SignupPage = () => {
 
           <div className="mt-6 text-center">
             <p className="text-xs text-muted-foreground">
-              © {new Date()?.getFullYear()} CRMPro. All rights reserved.
+              © {new Date()?.getFullYear()} San Synapse-CRM. All rights reserved.
             </p>
           </div>
         </div>

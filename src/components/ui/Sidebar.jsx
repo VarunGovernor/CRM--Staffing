@@ -46,7 +46,7 @@ const Sidebar = ({ isOpen = false, onClose }) => {
                 <Icon name="Zap" size={20} color="white" />
               </div>
               <div className="flex items-center space-x-2">
-                <span className="text-lg font-semibold text-foreground">CRMPro</span>
+                <span className="text-lg font-semibold text-foreground">San Synapse-CRM</span>
                 <span className="px-2 py-0.5 text-xs font-medium bg-accent text-accent-foreground rounded-full">
                   v2.1
                 </span>
@@ -142,7 +142,7 @@ const Sidebar = ({ isOpen = false, onClose }) => {
           {/* Footer */}
           <div className="p-4 border-t border-border">
             <div className="text-xs text-muted-foreground text-center">
-              © 2025 CRMPro. All rights reserved.
+              © 2025 San Synapse-CRM. All rights reserved.
             </div>
           </div>
         </div>

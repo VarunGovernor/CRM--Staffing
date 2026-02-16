@@ -14,7 +14,9 @@ const PlacementForm = ({ isOpen, onClose, placement, onSuccess }) => {
     candidate_id: '',
     vendor_id: '',
     submission_id: '',
+    technology: '',
     client_name: '',
+    client_address: '',
     job_title: '',
     start_date: '',
     end_date: '',
@@ -22,7 +24,12 @@ const PlacementForm = ({ isOpen, onClose, placement, onSuccess }) => {
     bill_rate: '',
     pay_rate: '',
     status: 'active',
+    offer_type: '',
     location: '',
+    final_interview_date: '',
+    final_interview_time: '',
+    vendor_contact_name: '',
+    vendor_contact_details: '',
     notes: ''
   });
 
@@ -42,7 +49,9 @@ const PlacementForm = ({ isOpen, onClose, placement, onSuccess }) => {
         candidate_id: placement?.candidate_id || '',
         vendor_id: placement?.vendor_id || '',
         submission_id: placement?.submission_id || '',
+        technology: placement?.technology || '',
         client_name: placement?.client_name || '',
+        client_address: placement?.client_address || '',
         job_title: placement?.job_title || '',
         start_date: placement?.start_date || '',
         end_date: placement?.end_date || '',
@@ -50,7 +59,12 @@ const PlacementForm = ({ isOpen, onClose, placement, onSuccess }) => {
         bill_rate: placement?.bill_rate?.toString() || '',
         pay_rate: placement?.pay_rate?.toString() || '',
         status: placement?.status || 'active',
+        offer_type: placement?.offer_type || '',
         location: placement?.location || '',
+        final_interview_date: placement?.final_interview_date || '',
+        final_interview_time: placement?.final_interview_time || '',
+        vendor_contact_name: placement?.vendor_contact_name || '',
+        vendor_contact_details: placement?.vendor_contact_details || '',
         notes: placement?.notes || ''
       });
     } else {
@@ -75,7 +89,9 @@ const PlacementForm = ({ isOpen, onClose, placement, onSuccess }) => {
       candidate_id: '',
       vendor_id: '',
       submission_id: '',
+      technology: '',
       client_name: '',
+      client_address: '',
       job_title: '',
       start_date: '',
       end_date: '',
@@ -83,7 +99,12 @@ const PlacementForm = ({ isOpen, onClose, placement, onSuccess }) => {
       bill_rate: '',
       pay_rate: '',
       status: 'active',
+      offer_type: '',
       location: '',
+      final_interview_date: '',
+      final_interview_time: '',
+      vendor_contact_name: '',
+      vendor_contact_details: '',
       notes: ''
     });
     setErrors({});
@@ -139,7 +160,9 @@ const PlacementForm = ({ isOpen, onClose, placement, onSuccess }) => {
       candidate_id: formData?.candidate_id,
       vendor_id: formData?.vendor_id,
       submission_id: formData?.submission_id || null,
+      technology: formData?.technology?.trim() || null,
       client_name: formData?.client_name?.trim(),
+      client_address: formData?.client_address?.trim() || null,
       job_title: formData?.job_title?.trim(),
       start_date: formData?.start_date,
       end_date: formData?.end_date || null,
@@ -147,7 +170,12 @@ const PlacementForm = ({ isOpen, onClose, placement, onSuccess }) => {
       bill_rate: parseFloat(formData?.bill_rate),
       pay_rate: parseFloat(formData?.pay_rate),
       status: formData?.status,
+      offer_type: formData?.offer_type || null,
       location: formData?.location?.trim() || null,
+      final_interview_date: formData?.final_interview_date || null,
+      final_interview_time: formData?.final_interview_time?.trim() || null,
+      vendor_contact_name: formData?.vendor_contact_name?.trim() || null,
+      vendor_contact_details: formData?.vendor_contact_details?.trim() || null,
       notes: formData?.notes?.trim() || null
     };
 
@@ -278,7 +306,7 @@ const PlacementForm = ({ isOpen, onClose, placement, onSuccess }) => {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
-              label="Client Name"
+              label="Client Name *"
               name="client_name"
               value={formData?.client_name}
               onChange={handleInputChange}
@@ -288,13 +316,29 @@ const PlacementForm = ({ isOpen, onClose, placement, onSuccess }) => {
               disabled={isLoading}
             />
             <Input
-              label="Job Title"
+              label="Client Address"
+              name="client_address"
+              value={formData?.client_address}
+              onChange={handleInputChange}
+              placeholder="Client office address"
+              disabled={isLoading}
+            />
+            <Input
+              label="Job Title *"
               name="job_title"
               value={formData?.job_title}
               onChange={handleInputChange}
               error={errors?.job_title}
               required
               placeholder="Senior Developer"
+              disabled={isLoading}
+            />
+            <Input
+              label="Technology"
+              name="technology"
+              value={formData?.technology}
+              onChange={handleInputChange}
+              placeholder="Java, React, AWS..."
               disabled={isLoading}
             />
             <Input
@@ -305,6 +349,20 @@ const PlacementForm = ({ isOpen, onClose, placement, onSuccess }) => {
               placeholder="City, State"
               disabled={isLoading}
             />
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">Offer Type</label>
+              <Select
+                name="offer_type"
+                value={formData?.offer_type}
+                onChange={handleInputChange}
+                disabled={isLoading}
+              >
+                <option value="">Select Offer Type</option>
+                <option value="c2c">C2C</option>
+                <option value="w2">W2</option>
+                <option value="full_time">Full-time</option>
+              </Select>
+            </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">Status</label>
               <Select
@@ -319,6 +377,48 @@ const PlacementForm = ({ isOpen, onClose, placement, onSuccess }) => {
                 <option value="extended">Extended</option>
               </Select>
             </div>
+          </div>
+        </div>
+
+        {/* Final Interview & Vendor Contact */}
+        <div>
+          <h3 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
+            <Icon name="Calendar" size={16} />
+            Final Interview & Vendor Contact
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="Final Interview Date"
+              type="date"
+              name="final_interview_date"
+              value={formData?.final_interview_date}
+              onChange={handleInputChange}
+              disabled={isLoading}
+            />
+            <Input
+              label="Final Interview Time (CST)"
+              name="final_interview_time"
+              value={formData?.final_interview_time}
+              onChange={handleInputChange}
+              placeholder="e.g. 2:00 PM CST"
+              disabled={isLoading}
+            />
+            <Input
+              label="Vendor Contact Person"
+              name="vendor_contact_name"
+              value={formData?.vendor_contact_name}
+              onChange={handleInputChange}
+              placeholder="Contact person name"
+              disabled={isLoading}
+            />
+            <Input
+              label="Vendor Contact Details"
+              name="vendor_contact_details"
+              value={formData?.vendor_contact_details}
+              onChange={handleInputChange}
+              placeholder="Email / Phone"
+              disabled={isLoading}
+            />
           </div>
         </div>
 

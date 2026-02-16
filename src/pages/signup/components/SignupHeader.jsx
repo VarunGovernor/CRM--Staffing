@@ -9,7 +9,7 @@ const SignupHeader = () => {
           <Icon name="Zap" size={28} color="white" />
         </div>
         <div className="flex items-center space-x-2">
-          <h1 className="text-2xl font-bold text-foreground">CRMPro</h1>
+          <h1 className="text-2xl font-bold text-foreground">San Synapse-CRM</h1>
           <span className="px-3 py-1 text-xs font-medium bg-accent text-accent-foreground rounded-full">
             v2.1
           </span>
@@ -21,7 +21,7 @@ const SignupHeader = () => {
           Create your account
         </h2>
         <p className="text-muted-foreground">
-          Join CRMPro to manage your staffing and recruitment workflow
+          Join San Synapse-CRM to manage your staffing and recruitment workflow
         </p>
       </div>
     </div>
