@@ -222,7 +222,6 @@ const Pipeline = () => {
   };
 
   const handleEditDeal = (deal) => {
-    console.log('Edit deal:', deal);
     // Implement edit functionality
   };
 

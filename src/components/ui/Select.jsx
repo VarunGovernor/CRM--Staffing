@@ -7,7 +7,7 @@ import Input from "./Input";
 
 const Select = React.forwardRef(({
     className,
-    options = [],
+    options: optionsProp = [],
     value,
     defaultValue,
     placeholder = "Select an option",
@@ -24,10 +24,33 @@ const Select = React.forwardRef(({
     name,
     onChange,
     onOpenChange,
+    children,
     ...props
 }, ref) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
+
+    // Derive options from either the options prop or children <option> elements
+    const options = React.useMemo(() => {
+        if (optionsProp.length > 0) return optionsProp;
+        if (!children) return [];
+        const childArray = React.Children.toArray(children);
+        return childArray
+            .filter(child => child.type === 'option' && child.props.value !== '' && child.props.value !== undefined)
+            .map(child => ({
+                value: child.props.value,
+                label: typeof child.props.children === 'string' ? child.props.children : String(child.props.children),
+                disabled: child.props.disabled || false,
+            }));
+    }, [optionsProp, children]);
+
+    // Derive placeholder from the first empty-value <option> child if present
+    const derivedPlaceholder = React.useMemo(() => {
+        if (optionsProp.length > 0 || !children) return placeholder;
+        const childArray = React.Children.toArray(children);
+        const emptyOption = childArray.find(child => child.type === 'option' && (child.props.value === '' || child.props.value === undefined));
+        return emptyOption ? String(emptyOption.props.children) : placeholder;
+    }, [optionsProp, children, placeholder]);
 
     // Generate unique ID if not provided
     const selectId = id || `select-${Math.random()?.toString(36)?.substr(2, 9)}`;
@@ -42,17 +65,17 @@ const Select = React.forwardRef(({
 
     // Get selected option(s) for display
     const getSelectedDisplay = () => {
-        if (!value) return placeholder;
+        if (!value) return derivedPlaceholder;
 
         if (multiple) {
             const selectedOptions = options?.filter(opt => value?.includes(opt?.value));
-            if (selectedOptions?.length === 0) return placeholder;
+            if (selectedOptions?.length === 0) return derivedPlaceholder;
             if (selectedOptions?.length === 1) return selectedOptions?.[0]?.label;
             return `${selectedOptions?.length} items selected`;
         }
 
         const selectedOption = options?.find(opt => opt?.value === value);
-        return selectedOption ? selectedOption?.label : placeholder;
+        return selectedOption ? selectedOption?.label : derivedPlaceholder;
     };
 
     const handleToggle = () => {
@@ -74,15 +97,22 @@ const Select = React.forwardRef(({
                 : [...newValue, option?.value];
             onChange?.(updatedValue);
         } else {
-            onChange?.(option?.value);
+            // Support both direct value and synthetic event patterns
+            const syntheticEvent = { target: { value: option?.value, name } };
+            onChange?.(syntheticEvent);
             setIsOpen(false);
             onOpenChange?.(false);
         }
     };
 
-    const handleClear = (e) => {
+    const handleClearValue = (e) => {
         e?.stopPropagation();
-        onChange?.(multiple ? [] : '');
+        const syntheticEvent = { target: { value: '', name } };
+        onChange?.(multiple ? [] : syntheticEvent);
+    };
+
+    const handleClear = (e) => {
+        handleClearValue(e);
     };
 
     const handleSearchChange = (e) => {

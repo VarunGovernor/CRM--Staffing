@@ -108,7 +108,6 @@ const AccountDrawer = ({ account, isOpen, onClose }) => {
 
   const handleSave = () => {
     // Handle save logic here
-    console.log('Saving account data:', editData);
     setIsEditing(false);
   };
 

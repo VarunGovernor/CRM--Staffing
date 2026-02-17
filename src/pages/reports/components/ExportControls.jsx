@@ -30,7 +30,7 @@ const ExportControls = () => {
     } else if (type === 'png') {
       // For PNG export, we would typically use html2canvas or similar
       // This is a mock implementation
-      console.log('PNG export would capture charts as images');
+      // PNG export would capture charts as images
     }
     
     setIsExporting(false);

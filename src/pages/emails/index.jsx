@@ -157,7 +157,6 @@ const EmailsPage = () => {
   };
 
   const handleSendEmail = (emailData) => {
-    console.log('Sending email:', emailData);
     // In a real app, this would send the email via API
   };
 
@@ -166,7 +165,6 @@ const EmailsPage = () => {
       ...prev,
       [provider]: true
     }));
-    console.log(`Connecting to ${provider}...`);
     // In a real app, this would initiate OAuth flow
   };
 

@@ -177,13 +177,13 @@ const BillingPage = () => {
           label: 'Upgrade Plan',
           variant: 'default',
           icon: 'ArrowUp',
-          onClick: () => console.log('Upgrade clicked')
+          onClick: () => {}
         },
         {
           label: 'View Usage',
           variant: 'outline',
           icon: 'BarChart3',
-          onClick: () => console.log('View usage clicked')
+          onClick: () => {}
         }
       ]
     },
@@ -198,7 +198,7 @@ const BillingPage = () => {
           label: 'Update Payment Method',
           variant: 'outline',
           icon: 'CreditCard',
-          onClick: () => console.log('Update payment clicked')
+          onClick: () => {}
         }
       ]
     }
@@ -213,22 +213,18 @@ const BillingPage = () => {
   };
 
   const handlePlanUpgrade = (plan) => {
-    console.log('Upgrading to plan:', plan?.name);
     // Mock upgrade functionality
   };
 
   const handlePaymentUpdate = (paymentData) => {
-    console.log('Updating payment method:', paymentData);
     // Mock payment update functionality
   };
 
   const handleUpgradeClick = () => {
-    console.log('Upgrade to premium clicked');
     // Mock upgrade functionality
   };
 
   const handleAlertDismiss = (alertId) => {
-    console.log('Alert dismissed:', alertId);
     // Mock alert dismissal
   };
 

@@ -243,33 +243,27 @@ const ContactsPage = () => {
   };
 
   const handleBulkExport = () => {
-    console.log('Exporting contacts:', selectedContacts);
     // Implement export functionality
   };
 
   const handleBulkEmail = () => {
-    console.log('Sending bulk email to contacts:', selectedContacts);
     // Implement bulk email functionality
   };
 
   const handleBulkTag = (tag) => {
-    console.log('Adding tag to contacts:', selectedContacts, tag);
     // Implement bulk tagging functionality
   };
 
   const handleBulkDelete = () => {
-    console.log('Deleting contacts:', selectedContacts);
     // Implement bulk delete functionality
     setSelectedContacts([]);
   };
 
   const handleAddContact = () => {
-    console.log('Add new contact');
     // Implement add contact functionality
   };
 
   const handleImportContacts = () => {
-    console.log('Import contacts');
     // Implement import functionality
   };
 

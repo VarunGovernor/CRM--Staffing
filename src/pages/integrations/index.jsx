@@ -233,17 +233,14 @@ const IntegrationsPage = () => {
   };
 
   const handleDisconnect = (integrationId) => {
-    console.log('Disconnecting integration:', integrationId);
     // In a real app, this would make an API call to disconnect the integration
   };
 
   const handleConfigure = (integrationId) => {
-    console.log('Configuring integration:', integrationId);
     // In a real app, this would open configuration modal or navigate to settings
   };
 
   const handleWizardComplete = (integrationId) => {
-    console.log('Integration setup completed:', integrationId);
     setIsWizardOpen(false);
     setSelectedIntegration(null);
     // In a real app, this would update the integration status

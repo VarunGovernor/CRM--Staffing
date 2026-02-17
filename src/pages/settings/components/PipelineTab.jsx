@@ -165,7 +165,6 @@ const PipelineTab = () => {
       setNewStage({ name: "", probability: 50, color: "#8B5CF6" });
       setIsAddStageModalOpen(false);
       setIsLoading(false);
-      console.log('Pipeline stage created successfully');
     }, 1000);
   };
 
@@ -185,7 +184,6 @@ const PipelineTab = () => {
       setNewRule({ name: "", trigger: "Deal created", action: "Assign to round-robin" });
       setIsAddRuleModalOpen(false);
       setIsLoading(false);
-      console.log('Automation rule created successfully');
     }, 1000);
   };
 
@@ -204,7 +202,6 @@ const PipelineTab = () => {
   const handleDeleteStage = (stageId) => {
     const stage = pipelineStages?.find(s => s?.id === stageId);
     if (stage?.isDefault) {
-      console.log('Cannot delete default stage');
       return;
     }
     setPipelineStages(prev => prev?.filter(stage => stage?.id !== stageId));
@@ -331,7 +328,7 @@ const PipelineTab = () => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => console.log('Edit stage', stage?.id)}
+                  onClick={() => {}}
                   aria-label="Edit stage"
                 >
                   <Icon name="Edit" size={16} />
@@ -402,7 +399,7 @@ const PipelineTab = () => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => console.log('Edit rule', rule?.id)}
+                  onClick={() => {}}
                   aria-label="Edit rule"
                 >
                   <Icon name="Edit" size={16} />

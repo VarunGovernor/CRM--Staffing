@@ -63,7 +63,6 @@ const DealsTable = ({
 
   const handleQuickAction = (e, action, deal) => {
     e?.stopPropagation();
-    console.log(`${action} action for deal:`, deal?.id);
   };
 
   const paginatedDeals = useMemo(() => {

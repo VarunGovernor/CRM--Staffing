@@ -208,7 +208,6 @@ const AccountsPage = () => {
   };
 
   const handleBulkAction = (action, selectedIds) => {
-    console.log(`Bulk ${action} for accounts:`, selectedIds);
     // Implement bulk actions here
   };
 

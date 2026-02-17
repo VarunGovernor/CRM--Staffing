@@ -134,11 +134,11 @@ const DealDrawer = ({ deal, isOpen, onClose }) => {
   };
 
   const handleStageAdvance = () => {
-    console.log('Advancing stage for deal:', deal?.id);
+    // Implement stage advancement
   };
 
   const handleScheduleActivity = () => {
-    console.log('Scheduling activity for deal:', deal?.id);
+    // Implement activity scheduling
   };
 
   return (
@@ -275,7 +275,7 @@ const DealDrawer = ({ deal, isOpen, onClose }) => {
                       label="Stage"
                       options={stageOptions}
                       value={deal?.stage}
-                      onChange={(value) => console.log('Stage changed to:', value)} />
+                      onChange={(value) => {}} />
 
                       </div>
                   }

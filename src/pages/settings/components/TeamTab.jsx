@@ -105,7 +105,6 @@ const TeamTab = () => {
       setInviteData({ email: "", role: "User", department: "Sales" });
       setIsInviteModalOpen(false);
       setIsLoading(false);
-      console.log('Invite sent successfully');
     }, 1000);
   };
 
@@ -282,7 +281,7 @@ const TeamTab = () => {
                       <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => console.log('Edit member', member?.id)}
+                      onClick={() => {}}
                       aria-label="Edit member">
 
                         <Icon name="Edit" size={16} />

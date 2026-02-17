@@ -92,7 +92,6 @@ const CompanyTab = () => {
 
   const handleLogoUpload = () => {
     // Mock logo upload functionality
-    console.log('Logo upload clicked');
   };
 
   const handleSaveCompany = async () => {
@@ -100,7 +99,6 @@ const CompanyTab = () => {
     // Mock save functionality
     setTimeout(() => {
       setIsLoading(false);
-      console.log('Company settings saved successfully');
     }, 1000);
   };
 

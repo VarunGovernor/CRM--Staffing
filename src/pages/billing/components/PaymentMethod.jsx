@@ -29,7 +29,6 @@ const PaymentMethod = ({ paymentMethod, onUpdate }) => {
   };
 
   const handleSave = () => {
-    console.log('Updating payment method:', formData);
     onUpdate(formData);
     setIsEditing(false);
   };

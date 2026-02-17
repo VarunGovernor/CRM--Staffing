@@ -7,3 +7,9 @@ package-lock.json
 .claude/
 .idea/
 vite.config.*s.*
+
+# Environment variables (NEVER commit secrets)
+.env
+.env.local
+.env.production
+.env.*.local

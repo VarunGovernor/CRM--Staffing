@@ -118,15 +118,39 @@ const Candidates = () => {
 
   const getVisaColor = (visa) => {
     const colors = {
-      'h1b': 'bg-indigo-100 text-indigo-700',
+      'us_citizen': 'bg-blue-100 text-blue-700',
       'green_card': 'bg-emerald-100 text-emerald-700',
-      'citizen': 'bg-blue-100 text-blue-700',
+      'h1b': 'bg-indigo-100 text-indigo-700',
+      'h4_ead': 'bg-teal-100 text-teal-700',
+      'l1': 'bg-violet-100 text-violet-700',
       'opt': 'bg-orange-100 text-orange-700',
       'cpt': 'bg-pink-100 text-pink-700',
-      'l1': 'bg-violet-100 text-violet-700',
-      'ead': 'bg-cyan-100 text-cyan-700'
+      'tn_visa': 'bg-sky-100 text-sky-700',
+      'e3': 'bg-lime-100 text-lime-700',
+      'ead': 'bg-cyan-100 text-cyan-700',
+      'gc_ead': 'bg-green-100 text-green-700',
+      'no_work_auth': 'bg-red-100 text-red-700'
     };
     return colors?.[visa] || 'bg-gray-100 text-gray-700';
+  };
+
+  const getVisaLabel = (visa) => {
+    const labels = {
+      'us_citizen': 'US Citizen',
+      'green_card': 'Green Card',
+      'h1b': 'H1B',
+      'h4_ead': 'H4 EAD',
+      'l1': 'L1',
+      'opt': 'OPT',
+      'cpt': 'CPT',
+      'tn_visa': 'TN Visa',
+      'e3': 'E3',
+      'ead': 'EAD',
+      'gc_ead': 'GC EAD',
+      'no_work_auth': 'No Work Auth',
+      'citizen': 'US Citizen',
+    };
+    return labels?.[visa] || visa?.replace(/_/g, ' ')?.toUpperCase();
   };
 
   return (
@@ -177,13 +201,18 @@ const Candidates = () => {
                   onChange={(e) => setFilters({ ...filters, visaStatus: e?.target?.value })}
                 >
                   <option value="">All Visa Status</option>
+                  <option value="us_citizen">US Citizen</option>
+                  <option value="green_card">Green Card (GC)</option>
                   <option value="h1b">H1B</option>
-                  <option value="green_card">Green Card</option>
-                  <option value="citizen">Citizen</option>
+                  <option value="h4_ead">H4 EAD</option>
+                  <option value="l1">L1 (L1A/L1B)</option>
                   <option value="opt">OPT</option>
                   <option value="cpt">CPT</option>
-                  <option value="l1">L1</option>
+                  <option value="tn_visa">TN Visa</option>
+                  <option value="e3">E3</option>
                   <option value="ead">EAD</option>
+                  <option value="gc_ead">GC EAD</option>
+                  <option value="no_work_auth">No Work Authorization</option>
                 </Select>
                 <Input
                   placeholder="Location..."
@@ -324,7 +353,7 @@ const Candidates = () => {
                           </td>
                           <td className="px-6 py-4">
                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${getVisaColor(candidate?.visa_status)}`}>
-                              {candidate?.visa_status?.toUpperCase()}
+                              {getVisaLabel(candidate?.visa_status)}
                             </span>
                           </td>
                           <td className="px-6 py-4">

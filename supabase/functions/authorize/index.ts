@@ -85,8 +85,11 @@ async function logAudit(
 
 // ── CORS headers ──
 
+// IMPORTANT: Replace with your actual production domain before deploying
+const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') || 'https://your-domain.com'
+
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
@@ -173,7 +176,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           error: 'Forbidden',
-          message: `Role '${userRole}' does not have access to module '${module}'`,
+          message: 'You do not have access to this resource',
         }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
@@ -184,7 +187,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           error: 'Forbidden',
-          message: `Role '${userRole}' cannot edit in module '${module}'`,
+          message: 'You do not have permission to perform this action',
         }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
@@ -194,7 +197,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           error: 'Forbidden',
-          message: `Role '${userRole}' cannot delete in module '${module}'`,
+          message: 'You do not have permission to perform this action',
         }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )

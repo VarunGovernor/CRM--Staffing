@@ -93,7 +93,6 @@ const BulkActions = ({ selectedCount, onExport, onBulkEmail, onBulkTag, onBulkDe
                   <div className="py-1">
                     <button
                       onClick={() => {
-                        console.log('Bulk assign to user');
                         setShowActions(false);
                       }}
                       className="flex items-center w-full px-4 py-2 text-sm text-popover-foreground hover:bg-muted transition-smooth"
@@ -103,7 +102,6 @@ const BulkActions = ({ selectedCount, onExport, onBulkEmail, onBulkTag, onBulkDe
                     </button>
                     <button
                       onClick={() => {
-                        console.log('Bulk change status');
                         setShowActions(false);
                       }}
                       className="flex items-center w-full px-4 py-2 text-sm text-popover-foreground hover:bg-muted transition-smooth"
@@ -113,7 +111,6 @@ const BulkActions = ({ selectedCount, onExport, onBulkEmail, onBulkTag, onBulkDe
                     </button>
                     <button
                       onClick={() => {
-                        console.log('Bulk add to campaign');
                         setShowActions(false);
                       }}
                       className="flex items-center w-full px-4 py-2 text-sm text-popover-foreground hover:bg-muted transition-smooth"

@@ -20,7 +20,7 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
     emergency_contact: '',
     date_of_birth: '',
     full_address: '',
-    visa_status: 'h1b',
+    visa_status: 'us_citizen',
     visa_copy_url: '',
     status: 'in_market',
     deal_type: '',
@@ -97,7 +97,7 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
       emergency_contact: '',
       date_of_birth: '',
       full_address: '',
-      visa_status: 'h1b',
+      visa_status: 'us_citizen',
       visa_copy_url: '',
       status: 'in_market',
       deal_type: '',
@@ -330,13 +330,18 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
                 onChange={handleInputChange}
                 disabled={isLoading}
               >
+                <option value="us_citizen">US Citizen</option>
+                <option value="green_card">Green Card (GC)</option>
                 <option value="h1b">H1B</option>
-                <option value="green_card">Green Card</option>
-                <option value="citizen">US Citizen</option>
+                <option value="h4_ead">H4 EAD</option>
+                <option value="l1">L1 (L1A/L1B)</option>
                 <option value="opt">OPT</option>
                 <option value="cpt">CPT</option>
-                <option value="l1">L1</option>
+                <option value="tn_visa">TN Visa</option>
+                <option value="e3">E3</option>
                 <option value="ead">EAD</option>
+                <option value="gc_ead">GC EAD</option>
+                <option value="no_work_auth">No Work Authorization</option>
               </Select>
             </div>
             <Input

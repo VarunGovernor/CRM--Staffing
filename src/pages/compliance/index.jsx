@@ -545,6 +545,15 @@ const Compliance = () => {
                         Form I-9 is used to verify the identity and employment authorization of individuals hired for employment in the United States.
                         All employees must complete Section 1 by their first day. Employers must complete Section 2 within 3 business days.
                       </p>
+                      <a
+                        href="https://www.uscis.gov/sites/default/files/document/forms/i-9.pdf"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        <Icon name="Download" size={16} />
+                        Download Official I-9 Form (USCIS)
+                      </a>
                     </div>
                   </div>
                 </div>

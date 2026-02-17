@@ -33,9 +33,9 @@ const HROnboarding = () => {
   ]);
 
   const [documents, setDocuments] = useState([
-    { id: 1, name: 'Company Handbook 2025', type: 'Policy', uploadDate: '2025-01-15', size: '2.4 MB' },
-    { id: 2, name: 'I-9 Form Template', type: 'Form', uploadDate: '2025-01-10', size: '156 KB' },
-    { id: 3, name: 'NDA Agreement', type: 'Legal', uploadDate: '2025-01-05', size: '89 KB' },
+    { id: 1, name: 'Company Handbook 2025', type: 'Policy', uploadDate: '2025-01-15', size: '2.4 MB', url: null },
+    { id: 2, name: 'I-9 Form Template (USCIS)', type: 'Form', uploadDate: '2025-01-10', size: '156 KB', url: 'https://www.uscis.gov/sites/default/files/document/forms/i-9.pdf' },
+    { id: 3, name: 'NDA Agreement', type: 'Legal', uploadDate: '2025-01-05', size: '89 KB', url: null },
   ]);
 
   useEffect(() => {
@@ -346,11 +346,21 @@ const HROnboarding = () => {
                             <td className="px-4 py-3 text-sm text-muted-foreground">{doc.size}</td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2">
-                                <button className="p-1.5 hover:bg-muted rounded transition-colors" title="Download">
-                                  <Icon name="Download" size={16} className="text-muted-foreground" />
+                                <button
+                                  className="p-1.5 hover:bg-muted rounded transition-colors"
+                                  title="Download"
+                                  onClick={() => doc.url && window.open(doc.url, '_blank', 'noopener,noreferrer')}
+                                  disabled={!doc.url}
+                                >
+                                  <Icon name="Download" size={16} className={doc.url ? "text-blue-600" : "text-muted-foreground"} />
                                 </button>
-                                <button className="p-1.5 hover:bg-muted rounded transition-colors" title="View">
-                                  <Icon name="Eye" size={16} className="text-muted-foreground" />
+                                <button
+                                  className="p-1.5 hover:bg-muted rounded transition-colors"
+                                  title="View"
+                                  onClick={() => doc.url && window.open(doc.url, '_blank', 'noopener,noreferrer')}
+                                  disabled={!doc.url}
+                                >
+                                  <Icon name="Eye" size={16} className={doc.url ? "text-blue-600" : "text-muted-foreground"} />
                                 </button>
                                 <button className="p-1.5 hover:bg-red-100 rounded transition-colors" title="Delete">
                                   <Icon name="Trash2" size={16} className="text-red-500" />

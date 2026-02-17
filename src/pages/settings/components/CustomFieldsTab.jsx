@@ -142,7 +142,6 @@ const CustomFieldsTab = () => {
       });
       setIsAddFieldModalOpen(false);
       setIsLoading(false);
-      console.log('Custom field created successfully');
     }, 1000);
   };
 
@@ -293,7 +292,7 @@ const CustomFieldsTab = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => console.log('Edit field', field?.id)}
+                            onClick={() => {}}
                             aria-label="Edit field"
                           >
                             <Icon name="Edit" size={16} />

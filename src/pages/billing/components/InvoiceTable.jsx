@@ -36,7 +36,6 @@ const InvoiceTable = ({ invoices }) => {
   };
 
   const handleDownload = (invoice) => {
-    console.log('Downloading invoice:', invoice?.id);
     // Mock download functionality
   };
 

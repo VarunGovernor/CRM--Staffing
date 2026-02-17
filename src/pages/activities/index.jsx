@@ -229,7 +229,6 @@ const Activities = () => {
 
   const handleEditActivity = (activity) => {
     // In a real app, this would open an edit modal
-    console.log('Edit activity:', activity);
   };
 
   const handleCompleteActivity = (activityId) => {
@@ -244,7 +243,6 @@ const Activities = () => {
 
   const handleRescheduleActivity = (activity) => {
     // In a real app, this would open a reschedule modal
-    console.log('Reschedule activity:', activity);
   };
 
   const handleSelectActivity = (activityId, checked) => {

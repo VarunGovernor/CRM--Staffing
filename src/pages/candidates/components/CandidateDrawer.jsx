@@ -34,15 +34,31 @@ const CandidateDrawer = ({ candidate, isOpen, onClose, onEdit }) => {
 
   const getVisaColor = (visa) => {
     const colors = {
-      'h1b': 'bg-indigo-100 text-indigo-700',
+      'us_citizen': 'bg-blue-100 text-blue-700',
       'green_card': 'bg-emerald-100 text-emerald-700',
-      'citizen': 'bg-blue-100 text-blue-700',
+      'h1b': 'bg-indigo-100 text-indigo-700',
+      'h4_ead': 'bg-teal-100 text-teal-700',
+      'l1': 'bg-violet-100 text-violet-700',
       'opt': 'bg-orange-100 text-orange-700',
       'cpt': 'bg-pink-100 text-pink-700',
-      'l1': 'bg-violet-100 text-violet-700',
-      'ead': 'bg-cyan-100 text-cyan-700'
+      'tn_visa': 'bg-sky-100 text-sky-700',
+      'e3': 'bg-lime-100 text-lime-700',
+      'ead': 'bg-cyan-100 text-cyan-700',
+      'gc_ead': 'bg-green-100 text-green-700',
+      'no_work_auth': 'bg-red-100 text-red-700',
+      'citizen': 'bg-blue-100 text-blue-700',
     };
     return colors?.[visa] || 'bg-gray-100 text-gray-700';
+  };
+
+  const getVisaLabel = (visa) => {
+    const labels = {
+      'us_citizen': 'US Citizen', 'green_card': 'Green Card', 'h1b': 'H1B',
+      'h4_ead': 'H4 EAD', 'l1': 'L1', 'opt': 'OPT', 'cpt': 'CPT',
+      'tn_visa': 'TN Visa', 'e3': 'E3', 'ead': 'EAD', 'gc_ead': 'GC EAD',
+      'no_work_auth': 'No Work Auth', 'citizen': 'US Citizen',
+    };
+    return labels?.[visa] || visa?.replace(/_/g, ' ')?.toUpperCase();
   };
 
   const getNcaColor = (status) => {
@@ -117,7 +133,7 @@ const CandidateDrawer = ({ candidate, isOpen, onClose, onEdit }) => {
                 <div>
                   <p className="text-sm text-muted-foreground mb-2">Visa Status</p>
                   <span className={`px-4 py-2 rounded-full text-sm font-medium inline-block ${getVisaColor(candidate?.visa_status)}`}>
-                    {candidate?.visa_status?.toUpperCase()}
+                    {getVisaLabel(candidate?.visa_status)}
                   </span>
                 </div>
                 {candidate?.deal_type && (

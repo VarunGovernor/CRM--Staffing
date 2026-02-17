@@ -97,7 +97,6 @@ const ContactDrawer = ({ contact, isOpen, onClose }) => {
 
   const handleAddNote = () => {
     if (newNote?.trim()) {
-      console.log('Adding note:', newNote);
       setNewNote('');
     }
   };

@@ -128,14 +128,6 @@ export const createAuditLog = async ({
     created_at: timestamp
   };
 
-  // Log to console in development
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[AUDIT LOG]', {
-      ...logEntry,
-      details // Show parsed details in console
-    });
-  }
-
   // Try to save to database if audit_logs table exists
   try {
     const { data, error } = await supabase
@@ -145,15 +137,13 @@ export const createAuditLog = async ({
       .single();
 
     if (error) {
-      // Table might not exist - log to console only
-      console.warn('[AUDIT LOG] Database insert failed:', error.message);
+      // Table might not exist
       return logEntry;
     }
 
     return data;
   } catch (err) {
-    // Fallback to console logging
-    console.warn('[AUDIT LOG] Failed to save:', err.message);
+    // Fallback - return log entry without saving
     return logEntry;
   }
 };

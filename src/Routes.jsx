@@ -1,55 +1,66 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { BrowserRouter, Routes as RouterRoutes, Route } from "react-router-dom";
 import ScrollToTop from "components/ScrollToTop";
 import ErrorBoundary from "components/ErrorBoundary";
 import ProtectedRoute from "components/ProtectedRoute";
-import NotFound from "pages/NotFound";
-import Unauthorized from './pages/Unauthorized';
 
-// Public Pages
-import Home from './pages/public/Home';
-import About from './pages/public/About';
-import Services from './pages/public/Services';
-import Industries from './pages/public/Industries';
-import Contact from './pages/public/Contact';
-import LoginPage from './pages/login';
-import SignupPage from './pages/signup';
+// Loading fallback for lazy-loaded routes
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen bg-gray-50">
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <p className="text-sm text-gray-500">Loading...</p>
+    </div>
+  </div>
+);
 
-// CRM Pages
-import Dashboard from './pages/dashboard';
-import Candidates from './pages/candidates';
-import Submissions from './pages/submissions';
-import Interviews from './pages/interviews';
-import Placements from './pages/placements';
-import HROnboarding from './pages/hr-onboarding';
-import Invoices from './pages/invoices';
-import Compliance from './pages/compliance';
-import Analytics from './pages/analytics';
-import Settings from './pages/settings';
-import IntegrationsPage from './pages/integrations';
-import BillingPage from './pages/billing';
-import DealsPage from './pages/deals';
-import ContactsPage from './pages/contacts';
-import EmailsPage from './pages/emails';
-import AccountsPage from './pages/accounts';
-import Pipeline from './pages/pipeline';
-import CandidatePipeline from './pages/candidate-pipeline';
-import PayrollPage from './pages/payroll';
-import Reports from './pages/reports';
-import Activities from './pages/activities';
+// Public Pages (lazy loaded)
+const Home = lazy(() => import('./pages/public/Home'));
+const About = lazy(() => import('./pages/public/About'));
+const Services = lazy(() => import('./pages/public/Services'));
+const Industries = lazy(() => import('./pages/public/Industries'));
+const Contact = lazy(() => import('./pages/public/Contact'));
+const LoginPage = lazy(() => import('./pages/login'));
+const SignupPage = lazy(() => import('./pages/signup'));
+const NotFound = lazy(() => import('pages/NotFound'));
+const Unauthorized = lazy(() => import('./pages/Unauthorized'));
 
-// User Menu Pages
-import ProfileSettings from './pages/profile';
-import AccountSettings from './pages/account-settings';
+// CRM Pages (lazy loaded)
+const Dashboard = lazy(() => import('./pages/dashboard'));
+const Candidates = lazy(() => import('./pages/candidates'));
+const Submissions = lazy(() => import('./pages/submissions'));
+const Interviews = lazy(() => import('./pages/interviews'));
+const Placements = lazy(() => import('./pages/placements'));
+const HROnboarding = lazy(() => import('./pages/hr-onboarding'));
+const Invoices = lazy(() => import('./pages/invoices'));
+const Compliance = lazy(() => import('./pages/compliance'));
+const Analytics = lazy(() => import('./pages/analytics'));
+const Settings = lazy(() => import('./pages/settings'));
+const IntegrationsPage = lazy(() => import('./pages/integrations'));
+const BillingPage = lazy(() => import('./pages/billing'));
+const DealsPage = lazy(() => import('./pages/deals'));
+const ContactsPage = lazy(() => import('./pages/contacts'));
+const EmailsPage = lazy(() => import('./pages/emails'));
+const AccountsPage = lazy(() => import('./pages/accounts'));
+const Pipeline = lazy(() => import('./pages/pipeline'));
+const CandidatePipeline = lazy(() => import('./pages/candidate-pipeline'));
+const PayrollPage = lazy(() => import('./pages/payroll'));
+const Reports = lazy(() => import('./pages/reports'));
+const Activities = lazy(() => import('./pages/activities'));
 
-// Admin Pages
-import AdminActivity from './pages/admin-activity';
+// User Menu Pages (lazy loaded)
+const ProfileSettings = lazy(() => import('./pages/profile'));
+const AccountSettings = lazy(() => import('./pages/account-settings'));
+
+// Admin Pages (lazy loaded)
+const AdminActivity = lazy(() => import('./pages/admin-activity'));
 
 const Routes = () => {
   return (
     <BrowserRouter>
       <ErrorBoundary>
       <ScrollToTop />
+      <Suspense fallback={<PageLoader />}>
       <RouterRoutes>
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
@@ -94,6 +105,7 @@ const Routes = () => {
 
         <Route path="*" element={<NotFound />} />
       </RouterRoutes>
+      </Suspense>
       </ErrorBoundary>
     </BrowserRouter>
   );

@@ -26,7 +26,6 @@ const ContactsTable = ({
 
   const handleQuickAction = (e, action, contact) => {
     e?.stopPropagation();
-    console.log(`${action} action for contact:`, contact?.name);
   };
 
   const formatLastContact = (date) => {

@@ -280,7 +280,6 @@ const DealsPage = () => {
   };
 
   const handleBulkAction = (action) => {
-    console.log(`Bulk action ${action} for deals:`, selectedDeals);
     // Implement bulk actions here
   };
 

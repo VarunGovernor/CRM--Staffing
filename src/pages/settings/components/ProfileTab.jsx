@@ -91,7 +91,6 @@ const ProfileTab = () => {
 
   const handleAvatarUpload = () => {
     // Mock avatar upload functionality
-    console.log('Avatar upload clicked');
   };
 
   const handleSaveProfile = async () => {
@@ -99,7 +98,6 @@ const ProfileTab = () => {
     // Mock save functionality
     setTimeout(() => {
       setIsLoading(false);
-      console.log('Profile saved successfully');
     }, 1000);
   };
 
@@ -113,7 +111,6 @@ const ProfileTab = () => {
         newPassword: "",
         confirmPassword: ""
       });
-      console.log('Password changed successfully');
     }, 1000);
   };
 

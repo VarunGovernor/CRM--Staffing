@@ -8,19 +8,19 @@ const RightRail = () => {
       title: 'View Documentation',
       description: 'Learn how to maximize your CRM usage',
       icon: 'Book',
-      action: () => console.log('Documentation clicked')
+      action: () => {}
     },
     {
       title: 'Need Help?',
       description: 'Contact our support team',
       icon: 'HelpCircle',
-      action: () => console.log('Help clicked')
+      action: () => {}
     },
     {
       title: 'Share Feedback',
       description: 'Help us improve San Synapse-CRM',
       icon: 'MessageSquare',
-      action: () => console.log('Feedback clicked')
+      action: () => {}
     }
   ];
 
