@@ -156,30 +156,39 @@ const Header = ({ onMenuToggle, isSidebarOpen = false }) => {
         const { data: updatedEntry, error } = await clockOut(activeClockEntry.id);
         if (error) {
           console.error('Clock out failed:', error);
+          alert(`Clock out failed: ${error.message || error.code || 'Unknown error'}. Please try again or contact your administrator.`);
           return;
         }
 
         // Notify manager via WhatsApp + in-app
-        const { manager } = await getManagerInfo(user.id);
-        if (manager) {
-          await notifyManagerOnClockOut(
-            { id: user.id, full_name: userProfile?.full_name },
-            manager.id,
-            updatedEntry
-          );
+        try {
+          const { manager } = await getManagerInfo(user.id);
+          if (manager) {
+            await notifyManagerOnClockOut(
+              { id: user.id, full_name: userProfile?.full_name },
+              manager.id,
+              updatedEntry
+            );
+          }
+        } catch (notifErr) {
+          console.error('Manager notification failed:', notifErr);
         }
 
         // Notify admins
-        const duration = updatedEntry.duration_minutes;
-        const hours = Math.floor(duration / 60);
-        const mins = duration % 60;
-        const durationStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-        await notifyAdmins(
-          'clock_out',
-          'Employee Clocked Out',
-          `${userProfile?.full_name} clocked out. Duration: ${durationStr}.`,
-          { userId: user.id, clockEntryId: updatedEntry.id, durationMinutes: duration }
-        );
+        try {
+          const duration = updatedEntry.duration_minutes;
+          const hours = Math.floor(duration / 60);
+          const mins = duration % 60;
+          const durationStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+          await notifyAdmins(
+            'clock_out',
+            'Employee Clocked Out',
+            `${userProfile?.full_name} clocked out. Duration: ${durationStr}.`,
+            { userId: user.id, clockEntryId: updatedEntry.id, durationMinutes: duration }
+          );
+        } catch (notifErr) {
+          console.error('Admin notification failed:', notifErr);
+        }
 
         setActiveClockEntry(null);
       } else {
@@ -187,19 +196,27 @@ const Header = ({ onMenuToggle, isSidebarOpen = false }) => {
         const { data: newEntry, error } = await clockIn(user.id);
         if (error) {
           console.error('Clock in failed:', error);
+          alert(`Clock in failed: ${error.message || error.code || 'Unknown error'}. Please try again or contact your administrator.`);
           return;
         }
 
-        // Notify admins
-        await notifyAdmins(
-          'clock_in',
-          'Employee Clocked In',
-          `${userProfile?.full_name} has clocked in.`,
-          { userId: user.id, clockEntryId: newEntry.id }
-        );
+        // Notify admins (don't block clock-in on notification failure)
+        try {
+          await notifyAdmins(
+            'clock_in',
+            'Employee Clocked In',
+            `${userProfile?.full_name} has clocked in.`,
+            { userId: user.id, clockEntryId: newEntry.id }
+          );
+        } catch (notifErr) {
+          console.error('Admin notification failed:', notifErr);
+        }
 
         setActiveClockEntry(newEntry);
       }
+    } catch (err) {
+      console.error('Clock toggle error:', err);
+      alert('An unexpected error occurred. Please try again.');
     } finally {
       setIsClocking(false);
     }

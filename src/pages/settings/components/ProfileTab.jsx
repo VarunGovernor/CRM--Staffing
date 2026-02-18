@@ -1,22 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Icon from '../../../components/AppIcon';
 import Image from '../../../components/AppImage';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import { Checkbox } from '../../../components/ui/Checkbox';
+import { useAuth } from '../../../contexts/AuthContext';
+import { supabase } from '../../../lib/supabase';
+
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 
 const ProfileTab = () => {
+  const { user, userProfile, updateProfile } = useAuth();
+  const fileInputRef = useRef(null);
+
   const [profileData, setProfileData] = useState({
-    firstName: "John",
-    lastName: "Doe",
-    email: "john.doe@company.com",
-    phone: "+1 (555) 123-4567",
-    jobTitle: "Sales Manager",
-    department: "Sales",
-    timezone: "America/New_York",
-    language: "en",
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    jobTitle: '',
+    department: '',
+    timezone: 'America/New_York',
+    language: 'en',
+    avatar: ''
   });
 
   const [notifications, setNotifications] = useState({
@@ -37,6 +45,32 @@ const ProfileTab = () => {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isPasswordLoading, setIsPasswordLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [saveMessage, setSaveMessage] = useState(null);
+  const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
+  const avatarMenuRef = useRef(null);
+
+  // Load profile data from auth context
+  useEffect(() => {
+    if (userProfile) {
+      const nameParts = (userProfile.full_name || '').split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      setProfileData({
+        firstName,
+        lastName,
+        email: userProfile.email || user?.email || '',
+        phone: userProfile.phone || '',
+        jobTitle: userProfile.job_title || '',
+        department: userProfile.department || '',
+        timezone: userProfile.timezone || 'America/New_York',
+        language: userProfile.language || 'en',
+        avatar: userProfile.avatar_url || ''
+      });
+    }
+  }, [userProfile, user]);
 
   const timezoneOptions = [
     { value: "America/New_York", label: "Eastern Time (ET)" },
@@ -89,33 +123,198 @@ const ProfileTab = () => {
     }));
   };
 
+  // Close avatar menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (avatarMenuRef.current && !avatarMenuRef.current.contains(e.target)) {
+        setIsAvatarMenuOpen(false);
+      }
+    };
+    if (isAvatarMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isAvatarMenuOpen]);
+
   const handleAvatarUpload = () => {
-    // Mock avatar upload functionality
+    setIsAvatarMenuOpen(false);
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarRemove = async () => {
+    setIsAvatarMenuOpen(false);
+    if (!profileData.avatar) return;
+
+    setIsUploading(true);
+    setSaveMessage(null);
+
+    try {
+      // Try to delete the file from storage
+      const { data: files } = await supabase.storage
+        .from('avatars')
+        .list(user.id);
+
+      if (files?.length) {
+        const filePaths = files.map(f => `${user.id}/${f.name}`);
+        await supabase.storage.from('avatars').remove(filePaths);
+      }
+
+      // Clear avatar_url in profile
+      const { error } = await updateProfile({ avatar_url: null });
+
+      if (error) {
+        setSaveMessage({ type: 'error', text: `Failed to remove photo: ${error.message}` });
+        return;
+      }
+
+      setProfileData(prev => ({ ...prev, avatar: '' }));
+      setSaveMessage({ type: 'success', text: 'Profile photo removed.' });
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (err) {
+      setSaveMessage({ type: 'error', text: 'An unexpected error occurred.' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFileSelected = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reset input so same file can be re-selected
+    e.target.value = '';
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setSaveMessage({ type: 'error', text: 'Please upload a JPG, PNG, or GIF image.' });
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      setSaveMessage({ type: 'error', text: 'File size must be under 2MB.' });
+      return;
+    }
+
+    setIsUploading(true);
+    setSaveMessage(null);
+
+    try {
+      const ext = file.name.split('.').pop();
+      const filePath = `${user.id}/avatar.${ext}`;
+
+      // Upload to Supabase Storage (upsert to overwrite existing)
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) {
+        setSaveMessage({ type: 'error', text: `Upload failed: ${uploadError.message}` });
+        return;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Add cache-buster so the browser loads the new image
+      const avatarUrl = `${publicUrl}?t=${Date.now()}`;
+
+      // Save URL to user profile
+      const { error: profileError } = await updateProfile({ avatar_url: avatarUrl });
+
+      if (profileError) {
+        setSaveMessage({ type: 'error', text: `Failed to update profile: ${profileError.message}` });
+        return;
+      }
+
+      setProfileData(prev => ({ ...prev, avatar: avatarUrl }));
+      setSaveMessage({ type: 'success', text: 'Profile photo updated!' });
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (err) {
+      setSaveMessage({ type: 'error', text: 'An unexpected error occurred during upload.' });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleSaveProfile = async () => {
     setIsLoading(true);
-    // Mock save functionality
-    setTimeout(() => {
+    setSaveMessage(null);
+
+    try {
+      const fullName = `${profileData.firstName} ${profileData.lastName}`.trim();
+      const updates = {
+        full_name: fullName,
+        phone: profileData.phone || null,
+        job_title: profileData.jobTitle || null,
+        timezone: profileData.timezone,
+        language: profileData.language,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await updateProfile(updates);
+
+      if (error) {
+        setSaveMessage({ type: 'error', text: `Failed to save: ${error.message || 'Unknown error'}` });
+      } else {
+        setSaveMessage({ type: 'success', text: 'Profile saved successfully!' });
+        setTimeout(() => setSaveMessage(null), 3000);
+      }
+    } catch (err) {
+      setSaveMessage({ type: 'error', text: 'An unexpected error occurred.' });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleChangePassword = async () => {
-    setIsLoading(true);
-    // Mock password change functionality
-    setTimeout(() => {
-      setIsLoading(false);
-      setPasswordData({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: ""
+    if (!passwordData.newPassword || !passwordData.confirmPassword) {
+      setSaveMessage({ type: 'error', text: 'Please fill in all password fields.' });
+      return;
+    }
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setSaveMessage({ type: 'error', text: 'New passwords do not match.' });
+      return;
+    }
+    if (passwordData.newPassword.length < 8) {
+      setSaveMessage({ type: 'error', text: 'Password must be at least 8 characters.' });
+      return;
+    }
+
+    setIsPasswordLoading(true);
+    setSaveMessage(null);
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword
       });
-    }, 1000);
+
+      if (error) {
+        setSaveMessage({ type: 'error', text: `Password change failed: ${error.message}` });
+      } else {
+        setSaveMessage({ type: 'success', text: 'Password changed successfully!' });
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        setTimeout(() => setSaveMessage(null), 3000);
+      }
+    } catch (err) {
+      setSaveMessage({ type: 'error', text: 'An unexpected error occurred.' });
+    } finally {
+      setIsPasswordLoading(false);
+    }
   };
 
   return (
     <div className="space-y-8">
+      {/* Save feedback message */}
+      {saveMessage && (
+        <div className={`p-3 rounded-lg text-sm font-medium ${
+          saveMessage.type === 'success'
+            ? 'bg-success/10 text-success border border-success/30'
+            : 'bg-error/10 text-error border border-error/30'
+        }`}>
+          {saveMessage.text}
+        </div>
+      )}
+
       {/* Profile Information */}
       <div className="bg-card border border-border rounded-xl p-6">
         <div className="flex items-center space-x-4 mb-6">
@@ -128,29 +327,62 @@ const ProfileTab = () => {
 
         <div className="space-y-6">
           {/* Avatar Section */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif"
+            onChange={handleFileSelected}
+            className="hidden"
+          />
           <div className="flex items-center space-x-6">
-            <div className="relative">
-              <div className="w-20 h-20 rounded-full overflow-hidden bg-muted">
+            <div className="relative" ref={avatarMenuRef}>
+              <div className={`w-20 h-20 rounded-full overflow-hidden bg-muted ${isUploading ? 'opacity-50' : ''}`}>
                 <Image
                   src={profileData?.avatar}
-                  alt="Professional headshot of John Doe in business attire"
+                  alt={`Profile photo of ${profileData.firstName} ${profileData.lastName}`}
                   className="w-full h-full object-cover"
                 />
               </div>
               <button
-                onClick={handleAvatarUpload}
-                className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center hover:bg-primary/90 transition-smooth"
-                aria-label="Upload new avatar"
+                onClick={() => setIsAvatarMenuOpen(!isAvatarMenuOpen)}
+                disabled={isUploading}
+                className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center hover:bg-primary/90 transition-smooth disabled:opacity-50"
+                aria-label="Avatar options"
               >
-                <Icon name="Camera" size={16} />
+                <Icon name={isUploading ? 'Loader' : 'Camera'} size={16} />
               </button>
+
+              {/* Avatar dropdown menu */}
+              {isAvatarMenuOpen && (
+                <div className="absolute top-full left-0 mt-2 w-44 bg-card border border-border rounded-lg shadow-lg z-50 py-1">
+                  <button
+                    onClick={handleAvatarUpload}
+                    className="flex items-center w-full px-3 py-2 text-sm text-card-foreground hover:bg-muted transition-smooth"
+                  >
+                    <Icon name="Upload" size={14} className="mr-2" />
+                    Upload Photo
+                  </button>
+                  <button
+                    onClick={handleAvatarRemove}
+                    disabled={!profileData.avatar}
+                    className={`flex items-center w-full px-3 py-2 text-sm transition-smooth ${
+                      profileData.avatar
+                        ? 'text-red-600 hover:bg-red-50 font-medium cursor-pointer'
+                        : 'text-muted-foreground/40 cursor-not-allowed'
+                    }`}
+                  >
+                    <Icon name="Trash2" size={14} className="mr-2" />
+                    Remove Photo
+                  </button>
+                </div>
+              )}
             </div>
             <div>
               <h4 className="font-medium text-card-foreground">Profile Photo</h4>
               <p className="text-sm text-muted-foreground mb-2">JPG, PNG or GIF. Max size 2MB.</p>
-              <Button variant="outline" size="sm" onClick={handleAvatarUpload}>
-                <Icon name="Upload" size={16} className="mr-2" />
-                Upload New Photo
+              <Button variant="outline" size="sm" onClick={handleAvatarUpload} disabled={isUploading}>
+                <Icon name={isUploading ? 'Loader' : 'Upload'} size={16} className="mr-2" />
+                {isUploading ? 'Uploading...' : 'Upload New Photo'}
               </Button>
             </div>
           </div>
@@ -177,6 +409,7 @@ const ProfileTab = () => {
               value={profileData?.email}
               onChange={(e) => handleProfileChange('email', e?.target?.value)}
               required
+              disabled
             />
             <Input
               label="Phone Number"
@@ -346,7 +579,7 @@ const ProfileTab = () => {
           <Button
             variant="default"
             onClick={handleChangePassword}
-            loading={isLoading}
+            loading={isPasswordLoading}
             iconName="Shield"
             iconPosition="left"
           >
