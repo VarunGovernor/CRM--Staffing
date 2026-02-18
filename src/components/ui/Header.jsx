@@ -334,7 +334,7 @@ const Header = ({ onMenuToggle, isSidebarOpen = false }) => {
                     className="fixed inset-0 z-50"
                     onClick={handleDropdownClose}
                   />
-                  <div className="absolute right-0 mt-2 w-56 bg-popover border border-border rounded-lg shadow-elevation-2 z-60">
+                  <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-56 max-w-[14rem] bg-popover border border-border rounded-lg shadow-elevation-2 z-60">
                     <div className="py-1">
                       <button
                         onClick={() => {}}
@@ -395,7 +395,7 @@ const Header = ({ onMenuToggle, isSidebarOpen = false }) => {
                     className="fixed inset-0 z-50"
                     onClick={handleDropdownClose}
                   />
-                  <div className="absolute right-0 mt-2 w-80 bg-popover border border-border rounded-lg shadow-elevation-2 z-60 max-h-[400px] flex flex-col">
+                  <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-[20rem] bg-popover border border-border rounded-lg shadow-elevation-2 z-60 max-h-[70vh] sm:max-h-[400px] flex flex-col">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                       <h3 className="font-semibold text-sm text-popover-foreground">Notifications</h3>
                       {unreadCount > 0 && (
@@ -478,7 +478,7 @@ const Header = ({ onMenuToggle, isSidebarOpen = false }) => {
                     className="fixed inset-0 z-50"
                     onClick={handleDropdownClose}
                   />
-                  <div className="absolute right-0 mt-2 w-64 bg-popover border border-border rounded-lg shadow-elevation-2 z-60">
+                  <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-64 max-w-[16rem] bg-popover border border-border rounded-lg shadow-elevation-2 z-60">
                     <div className="p-4 border-b border-border">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">

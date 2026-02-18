@@ -190,10 +190,10 @@ const EmailsPage = () => {
       <main className="lg:ml-64 pt-16">
         <div className="h-[calc(100vh-4rem)] flex flex-col">
           {/* Page Header */}
-          <div className="bg-background border-b border-border p-6">
-            <div className="flex items-center justify-between">
+          <div className="bg-background border-b border-border p-4 lg:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-foreground">Emails</h1>
+                <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Emails</h1>
                 <p className="text-muted-foreground mt-1">
                   Manage your email communications and integrations
                 </p>

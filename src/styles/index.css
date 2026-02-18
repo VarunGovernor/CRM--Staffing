@@ -1,3 +1,8 @@
+/* Fluid responsive base font size: 14px on 320px screens → 16px on 1280px screens */
+html {
+  font-size: clamp(0.875rem, 0.833rem + 0.208vw, 1rem);
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -9,4 +14,10 @@ body {
   line-height: normal;
   font-family: inherit;
   margin: unset;
+}
+
+/* Responsive utility: prevent horizontal overflow on all pages */
+#root {
+  overflow-x: hidden;
+  min-height: 100vh;
 }

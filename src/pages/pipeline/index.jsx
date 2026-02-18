@@ -332,11 +332,11 @@ const Pipeline = () => {
       <Header onMenuToggle={handleSidebarToggle} isSidebarOpen={isSidebarOpen} />
       <Sidebar isOpen={isSidebarOpen} onClose={handleSidebarClose} />
       <main className="lg:ml-64 pt-16">
-        <div className="p-6 space-y-6">
+        <div className="p-4 lg:p-6 space-y-6">
           {/* Page Header */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Sales Pipeline</h1>
+              <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Sales Pipeline</h1>
               <p className="text-muted-foreground">
                 Manage your deals through the sales process with drag-and-drop functionality
               </p>
@@ -403,7 +403,7 @@ const Pipeline = () => {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: pipelineStages?.indexOf(stage) * 0.1 }}
-                  className="flex-shrink-0 w-80 h-full">
+                  className="flex-shrink-0 w-72 md:w-80 h-full">
 
                     <PipelineColumn
                     stage={stage}

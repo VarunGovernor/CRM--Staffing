@@ -33,14 +33,14 @@ const Sidebar = ({ isOpen = false, onClose }) => {
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 h-full w-64 bg-background border-r border-border z-50 lg:z-30
+          fixed top-0 left-0 h-full w-64 bg-background border-r border-border z-50 lg:z-30 lg:top-16
           transform transition-transform duration-300 ease-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
         <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-border">
+          {/* Header - visible on mobile only since desktop sidebar starts below the header bar */}
+          <div className="flex items-center justify-between p-6 border-b border-border lg:hidden">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <Icon name="Zap" size={20} color="white" />

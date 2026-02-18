@@ -272,11 +272,11 @@ const ContactsPage = () => {
       <Header onMenuToggle={handleMenuToggle} isSidebarOpen={isSidebarOpen} />
       <Sidebar isOpen={isSidebarOpen} onClose={handleSidebarClose} />
       <main className="lg:ml-64 pt-16">
-        <div className="p-6 max-w-7xl mx-auto">
+        <div className="p-4 lg:p-6 max-w-7xl mx-auto">
           {/* Page Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Contacts</h1>
+              <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Contacts</h1>
               <p className="text-muted-foreground mt-1">
                 Manage your individual contacts and relationships
               </p>

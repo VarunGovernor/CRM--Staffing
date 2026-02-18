@@ -37,21 +37,21 @@ const About = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-5xl font-bold text-foreground mb-6">About CRM Staffing</h1>
+            <h1 className="text-3xl md:text-5xl font-bold text-foreground mb-6">About CRM Staffing</h1>
             <p className="text-xl text-muted-foreground mb-12">
               We are a leading provider of enterprise CRM solutions for IT staffing and recruitment companies across the United States.
             </p>
 
             <div className="space-y-8">
               <div>
-                <h2 className="text-3xl font-semibold text-foreground mb-4">Our Mission</h2>
+                <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Our Mission</h2>
                 <p className="text-lg text-muted-foreground">
                   To empower staffing agencies with cutting-edge technology that streamlines their entire recruitment lifecycle, from candidate sourcing to placement and payroll management.
                 </p>
               </div>
 
               <div>
-                <h2 className="text-3xl font-semibold text-foreground mb-4">Why Choose Us</h2>
+                <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Why Choose Us</h2>
                 <ul className="space-y-3 text-lg text-muted-foreground">
                   <li className="flex items-start">
                     <Icon name="CheckCircle" size={24} className="text-primary mr-3 mt-1" />
@@ -73,7 +73,7 @@ const About = () => {
               </div>
 
               <div>
-                <h2 className="text-3xl font-semibold text-foreground mb-4">Our Values</h2>
+                <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Our Values</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-card p-6 rounded-xl border border-border">
                     <h3 className="text-xl font-semibold text-foreground mb-2">Innovation</h3>

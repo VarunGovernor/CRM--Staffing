@@ -71,7 +71,7 @@ const Services = () => {
             transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
-            <h1 className="text-5xl font-bold text-foreground mb-6">Our Services</h1>
+            <h1 className="text-3xl md:text-5xl font-bold text-foreground mb-6">Our Services</h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
               Comprehensive staffing and recruitment solutions tailored to your business needs
             </p>

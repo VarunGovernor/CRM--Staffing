@@ -64,7 +64,7 @@ const Contact = () => {
             transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
-            <h1 className="text-5xl font-bold text-foreground mb-6">Contact Us</h1>
+            <h1 className="text-3xl md:text-5xl font-bold text-foreground mb-6">Contact Us</h1>
             <p className="text-xl text-muted-foreground">
               Get in touch with our team to learn how we can help your staffing business
             </p>
@@ -76,7 +76,7 @@ const Contact = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
-              <h2 className="text-3xl font-semibold text-foreground mb-6">Send us a message</h2>
+              <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-6">Send us a message</h2>
               
               {submitted && (
                 <div className="mb-6 p-4 bg-success/10 border border-success/20 rounded-lg">
@@ -153,7 +153,7 @@ const Contact = () => {
               className="space-y-8"
             >
               <div>
-                <h2 className="text-3xl font-semibold text-foreground mb-6">Contact Information</h2>
+                <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-6">Contact Information</h2>
                 <div className="space-y-6">
                   <div className="flex items-start space-x-4">
                     <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">

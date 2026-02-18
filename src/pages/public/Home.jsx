@@ -72,7 +72,7 @@ const Home = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold text-foreground mb-6">
               Enterprise CRM for <span className="text-primary">IT Staffing</span>
             </h1>
             <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
@@ -95,7 +95,7 @@ const Home = () => {
       <section className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-foreground mb-4">Complete Staffing Solution</h2>
+            <h2 className="text-2xl md:text-4xl font-bold text-foreground mb-4">Complete Staffing Solution</h2>
             <p className="text-xl text-muted-foreground">Everything you need to manage your staffing business</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -121,8 +121,8 @@ const Home = () => {
       {/* CTA Section */}
       <section className="py-20 px-4">
         <div className="container mx-auto">
-          <div className="bg-gradient-to-r from-primary to-secondary rounded-2xl p-12 text-center text-white">
-            <h2 className="text-4xl font-bold mb-4">Ready to Transform Your Staffing Business?</h2>
+          <div className="bg-gradient-to-r from-primary to-secondary rounded-2xl p-6 md:p-12 text-center text-white">
+            <h2 className="text-2xl md:text-4xl font-bold mb-4">Ready to Transform Your Staffing Business?</h2>
             <p className="text-xl mb-8 opacity-90">Join hundreds of staffing agencies using our platform</p>
             <Button size="lg" variant="secondary" onClick={() => navigate('/login')}>
               Start Free Trial
