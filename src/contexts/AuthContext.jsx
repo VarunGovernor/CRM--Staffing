@@ -56,9 +56,20 @@ export const AuthProvider = ({ children }) => {
   }
 
   useEffect(() => {
+    // Safety timeout: if auth check takes too long (e.g. mobile browser
+    // restrictions on cookies/storage), stop loading so the app doesn't
+    // hang on a spinner forever.
+    const timeout = setTimeout(() => {
+      if (loading) {
+        setLoading(false)
+      }
+    }, 5000)
+
     // Initial session check
     supabase?.auth?.getSession()?.then(({ data: { session } }) => {
       authStateHandlers?.onChange(null, session)
+    }).catch(() => {
+      setLoading(false)
     })
 
     // CRITICAL: This must remain synchronous
@@ -66,7 +77,10 @@ export const AuthProvider = ({ children }) => {
       authStateHandlers?.onChange
     )
 
-    return () => subscription?.unsubscribe()
+    return () => {
+      clearTimeout(timeout)
+      subscription?.unsubscribe()
+    }
   }, [])
 
   // Auth methods
@@ -116,6 +130,14 @@ export const AuthProvider = ({ children }) => {
 
   const signOut = async () => {
     try {
+      // Log logout before clearing session so we still have user context
+      if (user) {
+        logAuthEvent(AUDIT_ACTIONS.LOGOUT, {
+          id: user.id,
+          email: user.email,
+          role: user.user_metadata?.role
+        }, true);
+      }
       const { error } = await supabase?.auth?.signOut()
       if (!error) {
         setUser(null)

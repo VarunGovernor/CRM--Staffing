@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
@@ -40,6 +40,13 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
   const [recruiters, setRecruiters] = useState([]);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const errorRef = useRef(null);
+
+  useEffect(() => {
+    if (errors?.general && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [errors?.general]);
 
   useEffect(() => {
     fetchRecruiters();
@@ -118,6 +125,21 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e?.target;
+
+    if (name === 'date_of_birth' && value) {
+      const parts = value.split('-');
+      const yearStr = parts[0];
+      const year = parseInt(yearStr, 10);
+      const currentYear = new Date().getFullYear();
+      if (yearStr.length >= 4 && (year > currentYear || year < 1900)) {
+        const clampedYear = Math.max(1900, Math.min(currentYear, year));
+        const clampedDate = [String(clampedYear).padStart(4, '0'), parts[1] || '01', parts[2] || '01'].join('-');
+        setFormData(prev => ({ ...prev, date_of_birth: clampedDate }));
+        if (errors?.date_of_birth) setErrors(prev => ({ ...prev, date_of_birth: '' }));
+        return;
+      }
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -141,7 +163,19 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
     if (!formData?.visa_status) newErrors.visa_status = 'Visa status is required';
 
     setErrors(newErrors);
-    return Object.keys(newErrors)?.length === 0;
+
+    if (Object.keys(newErrors).length > 0) {
+      const fieldOrder = ['full_name', 'email', 'phone', 'visa_status'];
+      const firstErrorField = fieldOrder.find(f => newErrors[f]);
+      if (firstErrorField) {
+        setTimeout(() => {
+          const el = document.querySelector(`[name="${firstErrorField}"]`);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 50);
+      }
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e) => {
@@ -231,15 +265,6 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
       footer={footer}
     >
       <form onSubmit={handleSubmit} className="space-y-6">
-        {errors?.general && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <Icon name="AlertCircle" size={16} className="text-red-500" />
-              <p className="text-sm text-red-700">{errors?.general}</p>
-            </div>
-          </div>
-        )}
-
         {/* Personal Information */}
         <div>
           <h3 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
@@ -300,6 +325,8 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
               name="date_of_birth"
               value={formData?.date_of_birth}
               onChange={handleInputChange}
+              min="1900-01-01"
+              max={new Date().toISOString().split('T')[0]}
               disabled={isLoading}
             />
             <div className="md:col-span-2">
@@ -519,6 +546,15 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
             </div>
           </div>
         </div>
+
+        {errors?.general && (
+          <div ref={errorRef} className="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <Icon name="AlertCircle" size={16} className="text-red-500" />
+              <p className="text-sm text-red-700">{errors?.general}</p>
+            </div>
+          </div>
+        )}
       </form>
     </Modal>
   );

@@ -7,6 +7,7 @@ import CompanyTab from './components/CompanyTab';
 import TeamTab from './components/TeamTab';
 import CustomFieldsTab from './components/CustomFieldsTab';
 import PipelineTab from './components/PipelineTab';
+import AuditLogTab from './components/AuditLogTab';
 
 const Settings = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -56,6 +57,12 @@ const Settings = () => {
       label: 'Automation',
       icon: 'Zap',
       description: 'Workflow automation rules (Phase 2)'
+    },
+    {
+      id: 'audit',
+      label: 'Login Activity',
+      icon: 'ShieldCheck',
+      description: 'Login history and session audit log'
     }
   ];
 
@@ -120,6 +127,8 @@ const Settings = () => {
             </div>
           </div>
         );
+      case 'audit':
+        return <AuditLogTab />;
       default:
         return <ProfileTab />;
     }

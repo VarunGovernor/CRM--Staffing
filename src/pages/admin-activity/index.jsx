@@ -6,8 +6,10 @@ import Icon from '../../components/AppIcon';
 import Select from '../../components/ui/Select';
 import { supabase } from '../../lib/supabase';
 import { getTodayClockStats, getAllClockEntries } from '../../lib/clockTracker';
+import { useAuth } from '../../contexts/AuthContext';
 
 const AdminActivity = () => {
+  const { userProfile } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('today');
@@ -181,6 +183,24 @@ const AdminActivity = () => {
     }
   };
 
+  if (userProfile && userProfile.role !== 'admin') {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} isSidebarOpen={isSidebarOpen} />
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+        <main className="lg:ml-64 pt-16">
+          <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+            <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center">
+              <Icon name="ShieldOff" size={28} className="text-red-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-foreground">Admin Access Only</h2>
+            <p className="text-muted-foreground text-sm">You don't have permission to view the Activity Log.</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} isSidebarOpen={isSidebarOpen} />
@@ -211,7 +231,7 @@ const AdminActivity = () => {
                   { value: 'month', label: 'Last 30 Days' }
                 ]}
                 value={filter}
-                onChange={(value) => setFilter(value)}
+                onChange={(e) => setFilter(e?.target?.value)}
               />
             </div>
           </div>
