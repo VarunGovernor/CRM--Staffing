@@ -304,14 +304,14 @@ const Candidates = () => {
                   <table className="w-full">
                     <thead className="bg-muted/50 border-b border-border">
                       <tr>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Name</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Contact</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Skills</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Visa Status</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Location</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Recruiter</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Days in Market</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Name</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Contact</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Skills</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Visa Status</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Location</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Recruiter</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Days in Market</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">

@@ -196,14 +196,14 @@ const Interviews = () => {
                   <table className="w-full">
                     <thead className="bg-muted/50 border-b border-border">
                       <tr>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Candidate</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Job Title</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Date & Time</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Mode</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Round</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Mentor</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Interviewer</th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Candidate</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Job Title</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Date & Time</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Mode</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Round</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Mentor</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Interviewer</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">

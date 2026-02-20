@@ -45,12 +45,7 @@ const Sidebar = ({ isOpen = false, onClose }) => {
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <Icon name="Zap" size={20} color="white" />
               </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-lg font-semibold text-foreground">San Synapse-CRM</span>
-                <span className="px-2 py-0.5 text-xs font-medium bg-accent text-accent-foreground rounded-full">
-                  v2.1
-                </span>
-              </div>
+              <span className="text-lg font-semibold text-foreground">San Synapse-CRM</span>
             </div>
 
             {/* Close button for mobile */}

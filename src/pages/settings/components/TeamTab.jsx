@@ -238,7 +238,7 @@ const TeamTab = () => {
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Department</th>
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Last Active</th>
-                <th className="text-right py-3 px-4 font-medium text-muted-foreground">Actions</th>
+                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>

@@ -522,7 +522,7 @@ const PayrollPage = () => {
                               <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Paid</th>
                               <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Balance</th>
                               <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Status</th>
-                              <th className="px-6 py-4 text-right text-sm font-medium text-muted-foreground">Action</th>
+                              <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Action</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border">
@@ -552,7 +552,7 @@ const PayrollPage = () => {
                                       {row.status}
                                     </span>
                                   </td>
-                                  <td className="px-6 py-4 text-right">
+                                  <td className="px-6 py-4 text-left">
                                     {row.status !== 'Processed' ? (
                                       <Button
                                         size="sm"
@@ -599,7 +599,7 @@ const PayrollPage = () => {
                               <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Check In</th>
                               <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Check Out</th>
                               <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Status</th>
-                              <th className="px-6 py-4 text-right text-sm font-medium text-muted-foreground">Actions</th>
+                              <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Actions</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border">
@@ -620,7 +620,7 @@ const PayrollPage = () => {
                                     {row.status}
                                   </span>
                                 </td>
-                                <td className="px-6 py-4 text-right">
+                                <td className="px-6 py-4 text-left">
                                   {row.status === 'Not Started' && (
                                     <Button size="sm" onClick={() => handleClockIn(row.id)} className="flex items-center gap-1">
                                       <Icon name="LogIn" size={14} />

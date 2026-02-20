@@ -21,3 +21,17 @@ body {
   overflow-x: hidden;
   min-height: 100vh;
 }
+
+/* Ensure data tables scroll horizontally on mobile/tablet instead of cramming columns */
+@media (max-width: 1023px) {
+  .overflow-x-auto > table {
+    min-width: 1000px;
+  }
+}
+
+/* Prevent badges/pills and cell text from wrapping inside tables */
+table td span,
+table td p,
+table th {
+  white-space: nowrap;
+}

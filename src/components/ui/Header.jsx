@@ -283,18 +283,16 @@ const Header = ({ onMenuToggle, isSidebarOpen = false }) => {
             </div>
 
             {/* Mobile Logo */}
-            <div className="flex items-center space-x-3 lg:hidden">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+            <div className="flex items-center space-x-2 lg:hidden">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
                 <Icon name="Zap" size={20} color="white" />
               </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-lg font-semibold text-foreground">San Synapse-CRM</span>
-              </div>
+              <span className="hidden sm:inline text-lg font-semibold text-foreground whitespace-nowrap">San Synapse-CRM</span>
             </div>
           </div>
 
           {/* Right Section - Actions & User */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 sm:space-x-2">
             {/* Clock In/Out Button */}
             <button
               onClick={handleClockToggle}
