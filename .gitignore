@@ -13,3 +13,19 @@ vite.config.*s.*
 .env.local
 .env.production
 .env.*.local
+# Flutter
+**/build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# Supabase
+supabase/.temp/
