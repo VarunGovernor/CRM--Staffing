@@ -169,7 +169,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         'Organization',
                       ),
                       const SizedBox(height: 8),
-                      _NavRow('ASG India Operation Private Limited'),
+                      _NavRow('San Synapse Private Limited'),
                     ],
                   ),
                   const SizedBox(height: 16),
