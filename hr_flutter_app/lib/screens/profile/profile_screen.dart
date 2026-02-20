@@ -12,7 +12,10 @@ const _kIndigo = Color(0xFF4F46E5);
 const _kAvatarRadius = 48.0;
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  /// Pass a [viewProfile] to show a peer's profile in read-only mode.
+  /// Leave null to show the logged-in user's own profile.
+  final UserProfile? viewProfile;
+  const ProfileScreen({super.key, this.viewProfile});
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
@@ -96,16 +99,17 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
-    final profile = context.watch<AuthProvider>().profile;
+    // If viewProfile is provided we're in peer-view (read-only) mode
+    final isOwner = widget.viewProfile == null;
+    final ownProfile = context.watch<AuthProvider>().profile;
+    final profile = widget.viewProfile ?? ownProfile;
     final topPad = MediaQuery.of(context).padding.top;
-    // Cover fills: safe area + toolbar + 80px visible gradient below toolbar
     final coverHeight = topPad + kToolbarHeight + 80.0;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: AppColors.background,
-        // Gradient extends behind the AppBar
         extendBodyBehindAppBar: true,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
@@ -132,7 +136,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       profile: profile,
                       coverHeight: coverHeight,
                       uploading: _uploading,
-                      onUpload: _pickAndUpload,
+                      onUpload: isOwner ? _pickAndUpload : null,
                     ),
                   ),
                   SliverPersistentHeader(
@@ -178,13 +182,14 @@ class _HeroSection extends StatelessWidget {
   final UserProfile profile;
   final double coverHeight;
   final bool uploading;
-  final VoidCallback onUpload;
+  // null when viewing a peer (read-only, no upload)
+  final VoidCallback? onUpload;
 
   const _HeroSection({
     required this.profile,
     required this.coverHeight,
     required this.uploading,
-    required this.onUpload,
+    this.onUpload,
   });
 
   @override
@@ -288,7 +293,6 @@ class _HeroSection extends StatelessWidget {
 
         // ── Avatar — painted on top of both layers ─────────────────────
         Positioned(
-          // Center of avatar sits exactly at the cover/white boundary
           top: coverHeight - _kAvatarRadius,
           child: GestureDetector(
             onTap: onUpload,
@@ -308,25 +312,27 @@ class _HeroSection extends StatelessWidget {
                   ),
                   child: _avatar(profile),
                 ),
-                Positioned(
-                  bottom: 2,
-                  right: 2,
-                  child: Container(
-                    width: 26, height: 26,
-                    decoration: BoxDecoration(
-                      color: _kIndigo,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
+                // Camera badge only shown for own profile
+                if (onUpload != null)
+                  Positioned(
+                    bottom: 2,
+                    right: 2,
+                    child: Container(
+                      width: 26, height: 26,
+                      decoration: BoxDecoration(
+                        color: _kIndigo,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: uploading
+                          ? const Padding(
+                              padding: EdgeInsets.all(5),
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2))
+                          : const Icon(Icons.camera_alt_rounded,
+                              color: Colors.white, size: 13),
                     ),
-                    child: uploading
-                        ? const Padding(
-                            padding: EdgeInsets.all(5),
-                            child: CircularProgressIndicator(
-                                color: Colors.white, strokeWidth: 2))
-                        : const Icon(Icons.camera_alt_rounded,
-                            color: Colors.white, size: 13),
                   ),
-                ),
               ],
             ),
           ),
@@ -685,42 +691,50 @@ class _PeerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 6, offset: const Offset(0, 2))
-        ],
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ProfileScreen(viewProfile: profile),
+        ),
       ),
-      child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        leading: _buildAvatar(),
-        title: Text(profile.fullName,
-            style: const TextStyle(
-                fontWeight: FontWeight.w700, fontSize: 14)),
-        subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const SizedBox(height: 2),
-          Text(profile.role.toUpperCase(),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 6, offset: const Offset(0, 2))
+          ],
+        ),
+        child: ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          leading: _buildAvatar(),
+          title: Text(profile.fullName,
               style: const TextStyle(
-                  fontSize: 11, color: AppColors.textGray,
-                  fontWeight: FontWeight.w500)),
-          const SizedBox(height: 3),
-          Row(children: [
-            Container(width: 6, height: 6,
-                decoration: const BoxDecoration(
-                    color: Color(0xFF22C55E), shape: BoxShape.circle)),
-            const SizedBox(width: 4),
-            const Text('Active',
-                style: TextStyle(color: Color(0xFF22C55E),
-                    fontSize: 12, fontWeight: FontWeight.w600)),
+                  fontWeight: FontWeight.w700, fontSize: 14)),
+          subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const SizedBox(height: 2),
+            Text(profile.role.toUpperCase(),
+                style: const TextStyle(
+                    fontSize: 11, color: AppColors.textGray,
+                    fontWeight: FontWeight.w500)),
+            const SizedBox(height: 3),
+            Row(children: [
+              Container(width: 6, height: 6,
+                  decoration: const BoxDecoration(
+                      color: Color(0xFF22C55E), shape: BoxShape.circle)),
+              const SizedBox(width: 4),
+              const Text('Active',
+                  style: TextStyle(color: Color(0xFF22C55E),
+                      fontSize: 12, fontWeight: FontWeight.w600)),
+            ]),
           ]),
-        ]),
-        trailing: const Icon(Icons.chevron_right_rounded,
-            color: AppColors.textGray, size: 20),
+          trailing: const Icon(Icons.chevron_right_rounded,
+              color: AppColors.textGray, size: 20),
+        ),
       ),
     );
   }
@@ -757,6 +771,21 @@ class _RelatedDataTab extends StatelessWidget {
     (label: 'Travel Request', icon: Icons.flight_outlined,       color: Color(0xFF7C3AED), bg: Color(0xFFF3EEFF)),
   ];
 
+  void _onTap(BuildContext context, String label) {
+    final t = _tiles.firstWhere((e) => e.label == label);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _RelatedItemSheet(
+        title: t.label,
+        icon: t.icon,
+        color: t.color,
+        bgColor: t.bg,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
@@ -768,7 +797,7 @@ class _RelatedDataTab extends StatelessWidget {
       itemBuilder: (_, i) {
         final t = _tiles[i];
         return GestureDetector(
-          onTap: () {},
+          onTap: () => _onTap(context, t.label),
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -919,6 +948,130 @@ class _ReportingCard extends StatelessWidget {
             style: const TextStyle(
                 fontWeight: FontWeight.w700, fontSize: 14)),
       ]),
+    );
+  }
+}
+
+// ─── Related Item Sheet (floating modal bottom sheet) ─────────────────────────
+
+class _RelatedItemSheet extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Color color;
+  final Color bgColor;
+
+  const _RelatedItemSheet({
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.bgColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.75,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          // Drag handle
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE2E8F0),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 4),
+          // Title row with X button
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: color, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(Icons.close_rounded,
+                        size: 18, color: AppColors.textGray),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Divider
+          Container(height: 1, color: const Color(0xFFF1F5F9)),
+          // Empty state content
+          Expanded(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 88,
+                      height: 88,
+                      decoration: BoxDecoration(
+                        color: bgColor,
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: Icon(icon, color: color, size: 44),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'No $title Yet',
+                      style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textDark),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Your $title records will appear here once they are added.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textGray,
+                          height: 1.5),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
