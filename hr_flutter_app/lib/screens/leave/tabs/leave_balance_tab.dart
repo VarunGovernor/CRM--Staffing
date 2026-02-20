@@ -20,11 +20,19 @@ class _LeaveBalanceTabState extends State<LeaveBalanceTab> {
     Color(0xFF22C55E),
     Color(0xFF3B82F6),
     Color(0xFFEF4444),
+    Color(0xFFF59E0B),
   ];
   static const _bgColors = [
     Color(0xFFDCFCE7),
     Color(0xFFDBEAFE),
     Color(0xFFFEE2E2),
+    Color(0xFFFEF3C7),
+  ];
+
+  static const _fallbackTypes = [
+    {'name': 'Earned Leave', 'code': 'EL'},
+    {'name': 'Compensatory Off', 'code': 'CO'},
+    {'name': 'Leave Without Pay', 'code': 'LWP'},
   ];
 
   @override
@@ -46,23 +54,99 @@ class _LeaveBalanceTabState extends State<LeaveBalanceTab> {
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
+
     if (_balances.isEmpty) {
-      return const Center(
-          child: Text('No leave balances', style: TextStyle(color: AppColors.textGray)));
+      return ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: _fallbackTypes.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
+        itemBuilder: (_, i) {
+          final idx = i % _iconColors.length;
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6)
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: _bgColors[idx],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    _fallbackTypes[i]['code']!,
+                    style: TextStyle(
+                        color: _iconColors[idx],
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _fallbackTypes[i]['name']!,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    RichText(
+                      text: const TextSpan(children: [
+                        TextSpan(
+                            text: 'Available : ',
+                            style: TextStyle(color: AppColors.textGray, fontSize: 13)),
+                        TextSpan(
+                            text: '0',
+                            style: TextStyle(
+                                color: AppColors.green,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13)),
+                      ]),
+                    ),
+                    RichText(
+                      text: const TextSpan(children: [
+                        TextSpan(
+                            text: 'Booked : ',
+                            style: TextStyle(color: AppColors.textGray, fontSize: 13)),
+                        TextSpan(
+                            text: '0',
+                            style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13)),
+                      ]),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      );
     }
+
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: _balances.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (_, i) {
         final b = _balances[i];
-        final idx = i % 3;
+        final idx = i % _iconColors.length;
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)],
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6)],
           ),
           child: Row(
             children: [

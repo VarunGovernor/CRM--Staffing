@@ -30,10 +30,12 @@ class ProfileTab extends StatelessWidget {
               _InfoRow('Role', profile.role.toUpperCase()),
             ]),
             const SizedBox(height: 16),
-            if (profile.reportsTo != null)
-              _Section('Hierarchy', [
-                _InfoRow('Reporting Manager', profile.reportsTo!),
-              ]),
+            _Section('Hierarchy', [
+              _InfoRow('Reporting To',
+                  profile.reportsTo != null && profile.reportsTo!.isNotEmpty
+                      ? profile.reportsTo!
+                      : 'Not Assigned'),
+            ]),
           ],
         ],
       ),
@@ -54,7 +56,7 @@ class _Section extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
