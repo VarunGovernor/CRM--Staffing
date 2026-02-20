@@ -4,6 +4,116 @@ All notable changes from the original CRM Pro v2.0 base are documented here.
 
 ---
 
+## [v2.6] — 2026-02-20
+
+### Flutter Mobile App — Speed Dial Add Menu
+- Replaced static center Add button with an animated **speed dial overlay**
+- Tapping Add reveals 5 quick-action tiles; button icon animates `+` → `×`
+- Each tile opens a full bottom-sheet form matching the reference UI:
+
+| Action | Color | Form |
+|---|---|---|
+| Leave | Purple | Apply Leave (type, from/to dates, team email, reason) |
+| Regularize | Red | Add Regularization (period, date, check-in card, reason dropdown) |
+| Time Log | Blue | Add Time Log (project, job, hour/start-end/timer modes, billable toggle) |
+| Compensatory Off | Orange | Add Request (worked date, unit, duration, start/end time, expiry date) |
+| Status | Green | Post Status (audience picker, @mention text, image/attachment toolbar) |
+
+- Shared form widget library (`sheet_widgets.dart`) for consistent styling across all sheets
+- Removed unused `/add` placeholder route from router
+
+### Flutter Mobile App — iOS Routing
+- Updated iOS configuration and routing setup (`45b5f71`)
+
+### Flutter Mobile App — UI Improvements (`487fba9`)
+- **Team view**: Lists all active team members with roles
+- **Organization view**: Lists departments with member counts
+- **Notifications**: Bell icon with unread badge count
+- **Leave types**: Color-coded leave balance chips
+- **Profile tab**: Expanded profile information display
+
+### Web App — Responsive UI Fixes (`4ff5cfb`)
+- Fixed header layout overflow on smaller viewports
+- Fixed sidebar collapse/expand behavior
+- Fixed data table column widths on candidates, interviews, and payroll pages
+- Fixed login/signup header sizing
+- Added CSS utility classes for consistent responsive behavior
+
+---
+
+## [v2.5] — 2026-02-19
+
+### Candidate Form UX (`cb39681`)
+- Fixed field ordering and validation feedback in the candidate add/edit form
+- Improved inline error states for required fields
+
+### Activity Log Filter
+- Added filter controls to the Admin Activity dashboard
+- Filter by action type and date range
+
+### Login Audit Export
+- New **Audit Log** tab in Settings (`src/pages/settings/components/AuditLogTab.jsx`)
+- Displays login history: user, timestamp, IP, device
+- Export to CSV
+
+---
+
+## [v2.4] — 2026-02-18
+
+### Clock In/Out Error Handling (`045d26d`)
+- Surfaced Supabase errors on failed clock-in/out with user-facing toast messages
+- Prevented double-submit on slow connections
+
+### Profile Settings — Supabase Integration
+- Profile tab (`ProfileTab.jsx`) now reads from and writes to Supabase `profiles` table
+- Avatar, display name, phone, timezone fields are persisted
+
+### UI Components & Pages (`19de28f`)
+- Updated Header component styling and active-state indicators
+- Sidebar active link highlight improvements
+- General polish across Activities, Contacts, Emails, Pipeline, Reports, and Integrations pages
+
+---
+
+## [v2.3] — 2026-02-17
+
+### Production Hardening (`f8ed60d`)
+- Removed `.env` from version control; added `.env.example` with all required keys documented
+- Added `Content-Security-Policy` and security headers via `netlify.toml` and `vercel.json`
+- Added Vercel deploy config (`vercel.json`) alongside existing Netlify config
+- Fixed `Select.jsx` component to handle null/undefined option values gracefully
+- Fixed `CandidateDrawer.jsx` and `CandidateForm.jsx` display issues
+- Improved `Routes.jsx` — lazy loading and cleaner role-guard structure
+- Updated `send-whatsapp` Supabase Edge Function with retry logic and better error logging
+- Updated `authorize` Edge Function with stricter role checks
+- HR Onboarding page refinements
+
+### Expanded VISA Types (`f8ed60d`)
+- Migration: `supabase/migrations/20260217_expanded_visa_types.sql`
+- Added new VISA type options to the candidates form dropdown
+
+### Database Migration — Production Hardening
+- File: `supabase/migrations/20260217_production_hardening.sql`
+- Added missing indexes on high-traffic columns
+- Added RLS policies for previously unprotected tables
+- Cleaned up orphaned foreign key constraints
+
+### Flutter Mobile App — Initial Launch (`f2d9870`)
+- New `hr_flutter_app/` — Flutter app for iOS and Android
+- Supabase-backed authentication (login screen)
+- **Home screen**: My Space / Team / Organization segments
+  - Activities tab: Check-in/out timer, work schedule, absent dates
+  - Dashboard tab: Leave report card, upcoming holidays
+  - Feeds tab, Profile tab, Approvals tab, Leave balance tab, Attendance tab, Time Logs tab
+- **Leave screen**: Summary, Balance, and Requests tabs
+- **Time screen**: Weekly time logs with total hours, week navigator
+- **More screen**: Searchable feature list
+- Real-time clock provider with elapsed time tracking
+- GoRouter navigation with auth guards
+- Material 3 theme with San Synapse brand colors
+
+---
+
 ## [v2.2] — 2026-02-15
 
 ### Branding

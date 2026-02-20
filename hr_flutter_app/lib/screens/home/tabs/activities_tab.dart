@@ -125,7 +125,6 @@ class _CheckInCard extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               SizedBox(
-                width: 110,
                 height: 48,
                 child: ElevatedButton(
                   onPressed: clock.loading
@@ -142,6 +141,7 @@ class _CheckInCard extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: clock.isClockedIn ? AppColors.primary : AppColors.green,
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
@@ -154,6 +154,7 @@ class _CheckInCard extends StatelessWidget {
                       : Text(
                           clock.isClockedIn ? 'Check-Out' : 'Check-In',
                           style: const TextStyle(fontWeight: FontWeight.w600),
+                          softWrap: false,
                         ),
                 ),
               ),

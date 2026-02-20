@@ -62,4 +62,15 @@ class AuthProvider extends ChangeNotifier {
   Future<void> signOut() async {
     await _authService.signOut();
   }
+
+  Future<void> refreshProfile() async {
+    if (_user != null) await _loadProfile(_user!.id);
+  }
+
+  Future<void> updateAvatar(String filePath) async {
+    if (_user == null) return;
+    final url = await _profileService.uploadAvatar(_user!.id, filePath);
+    await _profileService.updateProfile(_user!.id, {'avatar_url': url});
+    await _loadProfile(_user!.id);
+  }
 }

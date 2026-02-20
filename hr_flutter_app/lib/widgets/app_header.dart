@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../models/user_profile.dart';
 import '../models/notification_item.dart';
 import '../providers/clock_provider.dart';
+import '../screens/profile/profile_screen.dart';
 import '../services/notification_service.dart';
 import 'app_colors.dart';
 
@@ -119,22 +120,29 @@ class _AppHeaderState extends State<AppHeader> {
   }
 
   Widget _buildAvatar() {
-    if (widget.profile?.avatarUrl != null &&
-        widget.profile!.avatarUrl!.isNotEmpty) {
-      return CircleAvatar(
-        radius: 20,
-        backgroundImage:
-            CachedNetworkImageProvider(widget.profile!.avatarUrl!),
-      );
-    }
-    return CircleAvatar(
-      radius: 20,
-      backgroundColor: AppColors.blue,
-      child: Text(
-        widget.profile?.initials ?? 'U',
-        style: const TextStyle(
-            color: Colors.white, fontWeight: FontWeight.bold),
+    final avatar = widget.profile?.avatarUrl != null &&
+            widget.profile!.avatarUrl!.isNotEmpty
+        ? CircleAvatar(
+            radius: 20,
+            backgroundImage:
+                CachedNetworkImageProvider(widget.profile!.avatarUrl!),
+          )
+        : CircleAvatar(
+            radius: 20,
+            backgroundColor: AppColors.blue,
+            child: Text(
+              widget.profile?.initials ?? 'U',
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          );
+
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ProfileScreen()),
       ),
+      child: avatar,
     );
   }
 }

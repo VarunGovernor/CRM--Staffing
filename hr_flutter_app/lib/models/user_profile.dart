@@ -7,6 +7,14 @@ class UserProfile {
   final String? phone;
   final String? reportsTo;
   final bool isActive;
+  // Extended fields (pulled from Supabase when available)
+  final String? employeeId;
+  final String? department;
+  final String? location;
+  final String? shift;
+  final String? gender;
+  final String? dateOfBirth;
+  final String? dateOfJoining;
 
   UserProfile({
     required this.id,
@@ -17,6 +25,13 @@ class UserProfile {
     this.phone,
     this.reportsTo,
     this.isActive = true,
+    this.employeeId,
+    this.department,
+    this.location,
+    this.shift,
+    this.gender,
+    this.dateOfBirth,
+    this.dateOfJoining,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -29,6 +44,13 @@ class UserProfile {
       phone: json['phone'],
       reportsTo: json['reports_to'],
       isActive: json['is_active'] ?? true,
+      employeeId: json['employee_id'],
+      department: json['department'],
+      location: json['location'],
+      shift: json['shift'],
+      gender: json['gender'],
+      dateOfBirth: json['date_of_birth'],
+      dateOfJoining: json['date_of_joining'],
     );
   }
 

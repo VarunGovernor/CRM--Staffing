@@ -127,7 +127,7 @@ class _AddRegularizationSheetState extends State<AddRegularizationSheet> {
                     children: [
                       FormRow(
                         label: 'Employee',
-                        value: 'ASGI-015 - Nagamanikanta Varun Desetti',
+                        value: 'SS015 - Varun Governor',
                       ),
                       const FormDivider(),
                       FormRow(

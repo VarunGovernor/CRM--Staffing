@@ -173,7 +173,7 @@ class _AddCompOffSheetState extends State<AddCompOffSheet> {
                       FormRow(
                         label: 'Employee Name',
                         isRequired: true,
-                        value: 'Nagamanikanta Varun Desetti',
+                        value: 'Varun Governor',
                         onTap: () {},
                       ),
                     ],
