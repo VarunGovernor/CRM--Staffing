@@ -24,38 +24,19 @@ GoRouter createRouter(BuildContext context) {
     },
     refreshListenable: auth,
     routes: [
-      GoRoute(
-        path: '/login',
-        builder: (_, __) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
       ShellRoute(
         builder: (context, state, child) => ShellScreen(child: child),
         routes: [
-          GoRoute(path: '/home', builder: (_, __) => const HomeScreen()),
-          GoRoute(path: '/leave', builder: (_, __) => const LeaveScreen()),
-          GoRoute(path: '/add', builder: (_, __) => const _AddPlaceholder()),
-          GoRoute(path: '/time', builder: (_, __) => const TimeScreen()),
-          GoRoute(path: '/more', builder: (_, __) => const MoreScreen()),
+          GoRoute(path: '/home', builder: (_, _) => const HomeScreen()),
+          GoRoute(path: '/leave', builder: (_, _) => const LeaveScreen()),
+          GoRoute(path: '/time', builder: (_, _) => const TimeScreen()),
+          GoRoute(path: '/more', builder: (_, _) => const MoreScreen()),
         ],
       ),
-      GoRoute(
-        path: '/settings',
-        builder: (_, __) => const SettingsScreen(),
-      ),
+      GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
     ],
-    errorBuilder: (context, state) => const Scaffold(
-      body: Center(child: Text('Page not found')),
-    ),
+    errorBuilder: (context, state) =>
+        const Scaffold(body: Center(child: Text('Page not found'))),
   );
-}
-
-class _AddPlaceholder extends StatelessWidget {
-  const _AddPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Add', style: TextStyle(fontSize: 20))),
-    );
-  }
 }
