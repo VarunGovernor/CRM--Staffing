@@ -37,6 +37,17 @@ class _ProfileScreenState extends State<ProfileScreen>
     super.dispose();
   }
 
+  void _showEditSheet() {
+    final profile = context.read<AuthProvider>().profile;
+    if (profile == null) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EditProfileSheet(profile: profile),
+    );
+  }
+
   Future<void> _pickAndUpload() async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
@@ -137,6 +148,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       coverHeight: coverHeight,
                       uploading: _uploading,
                       onUpload: isOwner ? _pickAndUpload : null,
+                      onEdit: isOwner ? _showEditSheet : null,
                     ),
                   ),
                   SliverPersistentHeader(
@@ -184,12 +196,14 @@ class _HeroSection extends StatelessWidget {
   final bool uploading;
   // null when viewing a peer (read-only, no upload)
   final VoidCallback? onUpload;
+  final VoidCallback? onEdit;
 
   const _HeroSection({
     required this.profile,
     required this.coverHeight,
     required this.uploading,
     this.onUpload,
+    this.onEdit,
   });
 
   @override
@@ -277,12 +291,11 @@ class _HeroSection extends StatelessWidget {
                     children: [
                       _Btn(icon: Icons.share_outlined, label: 'Share',
                           onTap: () {}),
-                      const SizedBox(width: 10),
-                      _Btn(icon: Icons.edit_outlined, label: 'Edit',
-                          onTap: () {}, primary: true),
-                      const SizedBox(width: 10),
-                      _Btn(icon: Icons.mail_outline_rounded,
-                          label: 'Message', onTap: () {}),
+                      if (onEdit != null) ...[
+                        const SizedBox(width: 10),
+                        _Btn(icon: Icons.edit_outlined, label: 'Edit',
+                            onTap: onEdit!, primary: true),
+                      ],
                     ],
                   ),
                 ],
@@ -510,15 +523,26 @@ class _MyProfileTab extends StatelessWidget {
               _Field('First Name', firstName),
               _Field('Last Name', lastName),
             ),
+            if (profile.nickname?.isNotEmpty == true)
+              _Field('Nickname', profile.nickname!),
             _Row2(
               _Field('Gender', profile.gender ?? '-'),
               _Field('Date of Birth', profile.dateOfBirth ?? '-'),
             ),
             _Row2(
               _Field('Age', _age(profile.dateOfBirth)),
-              _Field('Marital Status', 'Single'),
+              _Field('Marital Status', profile.maritalStatus ?? '-'),
             ),
-            _Field('Blood Group', '-'),
+            _Row2(
+              _Field('Blood Group', profile.bloodGroup ?? '-'),
+              _Field('Work Permit', profile.workPermit ?? '-'),
+            ),
+            if (profile.aboutMe?.isNotEmpty == true)
+              _Field('About Me', profile.aboutMe!),
+            if (profile.expertise?.isNotEmpty == true)
+              _Field('Ask me about', profile.expertise!),
+            if (profile.experienceType?.isNotEmpty == true)
+              _Field('Experience Type', profile.experienceType!),
           ]),
           _Section('Work Information', Icons.work_outline_rounded, [
             _Row2(
@@ -947,6 +971,530 @@ class _ReportingCard extends StatelessWidget {
         Text(name,
             style: const TextStyle(
                 fontWeight: FontWeight.w700, fontSize: 14)),
+      ]),
+    );
+  }
+}
+
+// ─── Edit Profile Sheet ───────────────────────────────────────────────────────
+
+class _EditProfileSheet extends StatefulWidget {
+  final UserProfile profile;
+  const _EditProfileSheet({required this.profile});
+
+  @override
+  State<_EditProfileSheet> createState() => _EditProfileSheetState();
+}
+
+class _EditProfileSheetState extends State<_EditProfileSheet> {
+  // Text controllers
+  late final TextEditingController _nicknameCtrl;
+  late final TextEditingController _dobCtrl;
+  late final TextEditingController _aboutCtrl;
+  late final TextEditingController _expertiseCtrl;
+  late final TextEditingController _mobileCtrl;
+  late final TextEditingController _departmentCtrl;
+  late final TextEditingController _locationCtrl;
+
+  // Dropdown values
+  String? _gender;
+  String? _experienceType;
+  String? _maritalStatus;
+  String? _bloodGroup;
+  String? _workPermit;
+  String? _shift;
+
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final p = widget.profile;
+    _nicknameCtrl     = TextEditingController(text: p.nickname ?? '');
+    _dobCtrl          = TextEditingController(text: p.dateOfBirth ?? '');
+    _aboutCtrl        = TextEditingController(text: p.aboutMe ?? '');
+    _expertiseCtrl    = TextEditingController(text: p.expertise ?? '');
+    _mobileCtrl       = TextEditingController(text: p.phone ?? '');
+    _departmentCtrl   = TextEditingController(text: p.department ?? '');
+    _locationCtrl     = TextEditingController(text: p.location ?? '');
+    _gender           = p.gender;
+    _experienceType   = p.experienceType;
+    _maritalStatus    = p.maritalStatus;
+    _bloodGroup       = p.bloodGroup;
+    _workPermit       = p.workPermit;
+    _shift            = p.shift;
+  }
+
+  @override
+  void dispose() {
+    _nicknameCtrl.dispose();
+    _dobCtrl.dispose();
+    _aboutCtrl.dispose();
+    _expertiseCtrl.dispose();
+    _mobileCtrl.dispose();
+    _departmentCtrl.dispose();
+    _locationCtrl.dispose();
+    super.dispose();
+  }
+
+  String _calcAge(String dob) {
+    if (dob.isEmpty) return '';
+    try {
+      final d = DateTime.tryParse(dob);
+      if (d != null) {
+        final n = DateTime.now();
+        int y = n.year - d.year;
+        if (n.month < d.month || (n.month == d.month && n.day < d.day)) y--;
+        return '$y yrs';
+      }
+    } catch (_) {}
+    return '';
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final initial = DateTime.tryParse(_dobCtrl.text) ?? DateTime(now.year - 25);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(1940),
+      lastDate: now,
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.light(primary: _kIndigo),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null && mounted) {
+      setState(() {
+        _dobCtrl.text =
+            '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      });
+    }
+  }
+
+  Future<void> _submit() async {
+    setState(() => _saving = true);
+    try {
+      final auth = context.read<AuthProvider>();
+      await ProfileService().updateProfile(auth.profile!.id, {
+        'nickname':        _nicknameCtrl.text.trim(),
+        'gender':          _gender,
+        'experience_type': _experienceType,
+        'date_of_birth':   _dobCtrl.text.trim(),
+        'marital_status':  _maritalStatus,
+        'about_me':        _aboutCtrl.text.trim(),
+        'blood_group':     _bloodGroup,
+        'expertise':       _expertiseCtrl.text.trim(),
+        'work_permit':     _workPermit,
+        'phone':           _mobileCtrl.text.trim(),
+        'department':      _departmentCtrl.text.trim(),
+        'location':        _locationCtrl.text.trim(),
+        'shift':           _shift,
+      });
+      await auth.refreshProfile();
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Profile updated successfully'),
+          backgroundColor: Color(0xFF22C55E),
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to save: $e'),
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final h = MediaQuery.of(context).size.height;
+    final age = _calcAge(_dobCtrl.text);
+
+    return Container(
+      height: h * 0.93,
+      decoration: const BoxDecoration(
+        color: Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          // ── Handle
+          const SizedBox(height: 12),
+          Container(
+            width: 40, height: 4,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE2E8F0),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          // ── Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 16, 10),
+            child: Row(children: [
+              Container(
+                width: 36, height: 36,
+                decoration: BoxDecoration(
+                  color: _kIndigo.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.edit_outlined, color: _kIndigo, size: 19),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text('Edit Profile',
+                    style: TextStyle(
+                        fontSize: 17, fontWeight: FontWeight.w700,
+                        color: AppColors.textDark)),
+              ),
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  width: 32, height: 32,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(Icons.close_rounded,
+                      size: 18, color: AppColors.textGray),
+                ),
+              ),
+            ]),
+          ),
+          Container(height: 1, color: const Color(0xFFE2E8F0)),
+
+          // ── Scrollable form
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+
+                  // ── Section: Basic Details
+                  _editSectionHeader('Basic Details', Icons.person_outline_rounded),
+                  _editCard([
+                    _buildLabel('Gender'),
+                    const SizedBox(height: 8),
+                    _genderChips(),
+                    const SizedBox(height: 16),
+                    _textField('Nickname', _nicknameCtrl,
+                        hint: 'e.g. Alex', icon: Icons.tag_rounded),
+                    _dropdownField('Experience Type', _experienceType,
+                        ['Fresher', '1–2 Years', '3–5 Years', '5–8 Years', '8+ Years'],
+                        (v) => setState(() => _experienceType = v)),
+                  ]),
+
+                  // ── Section: Personal Details
+                  _editSectionHeader('Personal Details', Icons.badge_outlined),
+                  _editCard([
+                    _dobField(age),
+                    _dropdownField('Marital Status', _maritalStatus,
+                        ['Single', 'Married', 'Divorced', 'Widowed'],
+                        (v) => setState(() => _maritalStatus = v)),
+                    _textField('About Me', _aboutCtrl,
+                        hint: 'Write a short bio…',
+                        icon: Icons.notes_rounded, maxLines: 3),
+                    _dropdownField('Blood Group', _bloodGroup,
+                        ['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', 'O+', 'O−'],
+                        (v) => setState(() => _bloodGroup = v)),
+                    _textField('Ask me about / Expertise', _expertiseCtrl,
+                        hint: 'e.g. Recruitment, HR Policy',
+                        icon: Icons.lightbulb_outline_rounded),
+                    _dropdownField('Work Permit', _workPermit,
+                        ['Indian Citizen', 'Work Visa', 'Permanent Resident', 'Other'],
+                        (v) => setState(() => _workPermit = v)),
+                  ]),
+
+                  // ── Section: Contact
+                  _editSectionHeader('Contact', Icons.phone_outlined),
+                  _editCard([
+                    _textField('Mobile Number', _mobileCtrl,
+                        hint: '+91 9876543210',
+                        icon: Icons.smartphone_rounded,
+                        keyboard: TextInputType.phone),
+                  ]),
+
+                  // ── Section: Work Information
+                  _editSectionHeader('Work Information', Icons.work_outline_rounded),
+                  _editCard([
+                    _textField('Department', _departmentCtrl,
+                        hint: 'e.g. Sales Operations',
+                        icon: Icons.business_outlined),
+                    _textField('Location', _locationCtrl,
+                        hint: 'e.g. Hyderabad',
+                        icon: Icons.location_on_outlined),
+                    _dropdownField('Shift', _shift,
+                        ['Morning', 'Evening', 'Night', 'General'],
+                        (v) => setState(() => _shift = v)),
+                  ]),
+
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Bottom buttons
+          Container(
+            color: Colors.white,
+            padding: EdgeInsets.fromLTRB(
+                16, 12, 16, MediaQuery.of(context).padding.bottom + 16),
+            child: Row(children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text('Cancel',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GestureDetector(
+                  onTap: _saving ? null : _submit,
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF16A34A),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    alignment: Alignment.center,
+                    child: _saving
+                        ? const SizedBox(
+                            width: 20, height: 20,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2.5))
+                        : const Text('Submit',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ),
+            ]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Helper builders ──────────────────────────────────────────────────────────
+
+  Widget _editSectionHeader(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 20, 0, 10),
+      child: Row(children: [
+        Icon(icon, size: 16, color: _kIndigo),
+        const SizedBox(width: 7),
+        Text(title,
+            style: const TextStyle(
+                fontSize: 13, fontWeight: FontWeight.w700,
+                color: _kIndigo, letterSpacing: 0.4)),
+      ]),
+    );
+  }
+
+  Widget _editCard(List<Widget> children) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8, offset: const Offset(0, 2))
+        ],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+    );
+  }
+
+  Widget _buildLabel(String label) {
+    return Text(label,
+        style: const TextStyle(
+            fontSize: 12, fontWeight: FontWeight.w600,
+            color: AppColors.textGray, letterSpacing: 0.2));
+  }
+
+  Widget _genderChips() {
+    const opts = ['Male', 'Female', 'Other', 'Prefer not to say'];
+    return Wrap(
+      spacing: 8, runSpacing: 8,
+      children: opts.map((o) {
+        final sel = _gender == o;
+        return GestureDetector(
+          onTap: () => setState(() => _gender = o),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            decoration: BoxDecoration(
+              color: sel ? _kIndigo : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                  color: sel ? _kIndigo : const Color(0xFFE2E8F0)),
+            ),
+            child: Text(o,
+                style: TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w600,
+                    color: sel ? Colors.white : AppColors.textGray)),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _textField(String label, TextEditingController ctrl,
+      {String hint = '',
+      IconData? icon,
+      int maxLines = 1,
+      TextInputType keyboard = TextInputType.text}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _buildLabel(label),
+        const SizedBox(height: 6),
+        TextField(
+          controller: ctrl,
+          maxLines: maxLines,
+          keyboardType: keyboard,
+          style: const TextStyle(fontSize: 14, color: AppColors.textDark),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(
+                color: AppColors.textGray.withValues(alpha: 0.5), fontSize: 13),
+            prefixIcon: icon != null
+                ? Icon(icon, size: 18, color: AppColors.textGray)
+                : null,
+            filled: true,
+            fillColor: const Color(0xFFF8FAFC),
+            contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14, vertical: 12),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: _kIndigo, width: 1.5)),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _dobField(String age) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _buildLabel('Date of Birth'),
+        const SizedBox(height: 6),
+        Row(children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: _pickDate,
+              child: AbsorbPointer(
+                child: TextField(
+                  controller: _dobCtrl,
+                  readOnly: true,
+                  style: const TextStyle(fontSize: 14, color: AppColors.textDark),
+                  decoration: InputDecoration(
+                    hintText: 'YYYY-MM-DD',
+                    hintStyle: TextStyle(
+                        color: AppColors.textGray.withValues(alpha: 0.5),
+                        fontSize: 13),
+                    prefixIcon: const Icon(Icons.cake_outlined,
+                        size: 18, color: AppColors.textGray),
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide:
+                            const BorderSide(color: Color(0xFFE2E8F0))),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide:
+                            const BorderSide(color: Color(0xFFE2E8F0))),
+                    focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide:
+                            const BorderSide(color: _kIndigo, width: 1.5)),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (age.isNotEmpty) ...[
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: _kIndigo.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(age,
+                  style: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w700,
+                      color: _kIndigo)),
+            ),
+          ],
+        ]),
+      ]),
+    );
+  }
+
+  Widget _dropdownField(String label, String? value, List<String> options,
+      ValueChanged<String?> onChanged) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _buildLabel(label),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: DropdownButton<String>(
+            value: options.contains(value) ? value : null,
+            isExpanded: true,
+            underline: const SizedBox.shrink(),
+            dropdownColor: Colors.white,
+            hint: Text('Select…',
+                style: TextStyle(
+                    color: AppColors.textGray.withValues(alpha: 0.5),
+                    fontSize: 13)),
+            style: const TextStyle(fontSize: 14, color: AppColors.textDark),
+            items: options
+                .map((o) => DropdownMenuItem(value: o, child: Text(o)))
+                .toList(),
+            onChanged: onChanged,
+          ),
+        ),
       ]),
     );
   }

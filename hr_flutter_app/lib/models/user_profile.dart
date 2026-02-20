@@ -15,6 +15,14 @@ class UserProfile {
   final String? gender;
   final String? dateOfBirth;
   final String? dateOfJoining;
+  // Editable personal fields
+  final String? nickname;
+  final String? experienceType;
+  final String? maritalStatus;
+  final String? aboutMe;
+  final String? bloodGroup;
+  final String? expertise;
+  final String? workPermit;
 
   UserProfile({
     required this.id,
@@ -32,6 +40,13 @@ class UserProfile {
     this.gender,
     this.dateOfBirth,
     this.dateOfJoining,
+    this.nickname,
+    this.experienceType,
+    this.maritalStatus,
+    this.aboutMe,
+    this.bloodGroup,
+    this.expertise,
+    this.workPermit,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -51,6 +66,13 @@ class UserProfile {
       gender: json['gender'],
       dateOfBirth: json['date_of_birth'],
       dateOfJoining: json['date_of_joining'],
+      nickname: json['nickname'],
+      experienceType: json['experience_type'],
+      maritalStatus: json['marital_status'],
+      aboutMe: json['about_me'],
+      bloodGroup: json['blood_group'],
+      expertise: json['expertise'],
+      workPermit: json['work_permit'],
     );
   }
 
