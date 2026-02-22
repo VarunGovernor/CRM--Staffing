@@ -136,9 +136,10 @@ const CandidatePipeline = () => {
                         onDrop={(e) => handleDrop(e, stage.id)}
                       >
                         {/* Stage Header */}
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className={`w-2.5 h-2.5 rounded-full ${stage.color} flex-shrink-0`} />
                           <h3 className="font-semibold text-foreground">{stage.name}</h3>
-                          <span className="w-6 h-6 flex items-center justify-center bg-muted rounded-full text-xs font-medium text-muted-foreground">
+                          <span className="px-2 py-0.5 bg-muted rounded-full text-xs font-medium text-muted-foreground flex-shrink-0">
                             {stageCandidates.length}
                           </span>
                         </div>
