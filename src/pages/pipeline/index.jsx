@@ -8,12 +8,35 @@ import PipelineColumn from './components/PipelineColumn';
 import PipelineFilters from './components/PipelineFilters';
 import AddDealModal from './components/AddDealModal';
 import PipelineStats from './components/PipelineStats';
+import { supabase } from '../../lib/supabase';
+
+const mapDbDeal = (d) => ({
+  id: d.id,
+  title: d.title,
+  accountName: d.account_name,
+  value: d.value,
+  owner: {
+    id: d.owner_name?.toLowerCase().replace(/\s+/g, '-') || '',
+    name: d.owner_name || '',
+    avatar: d.owner_avatar || '',
+    avatarAlt: `Profile picture of ${d.owner_name || 'team member'}`
+  },
+  closeDate: d.close_date,
+  priority: d.priority,
+  probability: d.probability,
+  stage: d.stage,
+  description: d.description,
+  tags: d.tags || [],
+  createdAt: d.created_at,
+  updatedAt: d.updated_at
+});
 
 const Pipeline = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAddDealModalOpen, setIsAddDealModalOpen] = useState(false);
   const [selectedStage, setSelectedStage] = useState(null);
   const [deals, setDeals] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     search: '',
     owner: 'all',
@@ -25,7 +48,7 @@ const Pipeline = () => {
     endDate: ''
   });
 
-  // Mock data for pipeline stages
+  // Pipeline stages
   const pipelineStages = [
   { id: 'new', name: 'New', color: 'blue' },
   { id: 'qualified', name: 'Qualified', color: 'yellow' },
@@ -33,166 +56,25 @@ const Pipeline = () => {
   { id: 'won', name: 'Won', color: 'green' },
   { id: 'lost', name: 'Lost', color: 'red' }];
 
-
-  // Mock deals data
-  const mockDeals = [
-  {
-    id: 'deal-1',
-    title: 'Enterprise Software License',
-    accountName: 'TechCorp Solutions',
-    value: 125000,
-    owner: {
-      id: 'john-doe',
-      name: 'John Doe',
-      avatar: "https://images.unsplash.com/photo-1588178457501-31b7688a41a0",
-      avatarAlt: 'Professional headshot of John Doe in navy suit with short brown hair'
-    },
-    closeDate: '2025-01-15',
-    priority: 'High',
-    probability: 85,
-    stage: 'proposal',
-    tags: ['Enterprise', 'Software', 'Renewal'],
-    createdAt: '2024-12-01T10:00:00Z',
-    updatedAt: '2025-01-02T14:30:00Z'
-  },
-  {
-    id: 'deal-2',
-    title: 'Cloud Migration Project',
-    accountName: 'Global Manufacturing Inc',
-    value: 75000,
-    owner: {
-      id: 'sarah-wilson',
-      name: 'Sarah Wilson',
-      avatar: "https://images.unsplash.com/photo-1647326164285-b882810647cb",
-      avatarAlt: 'Professional headshot of Sarah Wilson with blonde hair in business attire'
-    },
-    closeDate: '2025-02-28',
-    priority: 'Medium',
-    probability: 60,
-    stage: 'qualified',
-    tags: ['Cloud', 'Migration'],
-    createdAt: '2024-12-15T09:15:00Z',
-    updatedAt: '2025-01-01T11:20:00Z'
-  },
-  {
-    id: 'deal-3',
-    title: 'Security Audit Services',
-    accountName: 'Financial Services Ltd',
-    value: 45000,
-    owner: {
-      id: 'mike-johnson',
-      name: 'Mike Johnson',
-      avatar: "https://images.unsplash.com/photo-1722368378695-8a56b520fcf0",
-      avatarAlt: 'Professional headshot of Mike Johnson with dark hair and glasses'
-    },
-    closeDate: '2025-01-30',
-    priority: 'High',
-    probability: 90,
-    stage: 'proposal',
-    tags: ['Security', 'Audit', 'Compliance'],
-    createdAt: '2024-11-20T16:45:00Z',
-    updatedAt: '2025-01-02T09:10:00Z'
-  },
-  {
-    id: 'deal-4',
-    title: 'Marketing Automation Platform',
-    accountName: 'Retail Chain Corp',
-    value: 35000,
-    owner: {
-      id: 'emily-davis',
-      name: 'Emily Davis',
-      avatar: "https://images.unsplash.com/photo-1700561791890-a15d45b9c79d",
-      avatarAlt: 'Professional headshot of Emily Davis with curly brown hair in blue blazer'
-    },
-    closeDate: '2025-03-15',
-    priority: 'Medium',
-    probability: 40,
-    stage: 'new',
-    tags: ['Marketing', 'Automation'],
-    createdAt: '2025-01-01T08:30:00Z',
-    updatedAt: '2025-01-02T15:45:00Z'
-  },
-  {
-    id: 'deal-5',
-    title: 'Data Analytics Solution',
-    accountName: 'Healthcare Systems',
-    value: 95000,
-    owner: {
-      id: 'alex-chen',
-      name: 'Alex Chen',
-      avatar: "https://images.unsplash.com/photo-1537107041341-713aaa2a234c",
-      avatarAlt: 'Professional headshot of Alex Chen with black hair in charcoal suit'
-    },
-    closeDate: '2025-02-10',
-    priority: 'High',
-    probability: 75,
-    stage: 'qualified',
-    tags: ['Analytics', 'Healthcare', 'Data'],
-    createdAt: '2024-12-10T13:20:00Z',
-    updatedAt: '2025-01-02T10:15:00Z'
-  },
-  {
-    id: 'deal-6',
-    title: 'Mobile App Development',
-    accountName: 'Startup Innovations',
-    value: 28000,
-    owner: {
-      id: 'john-doe',
-      name: 'John Doe',
-      avatar: "https://images.unsplash.com/photo-1588178457501-31b7688a41a0",
-      avatarAlt: 'Professional headshot of John Doe in navy suit with short brown hair'
-    },
-    closeDate: '2025-04-01',
-    priority: 'Low',
-    probability: 30,
-    stage: 'new',
-    tags: ['Mobile', 'Development'],
-    createdAt: '2025-01-02T12:00:00Z',
-    updatedAt: '2025-01-02T12:00:00Z'
-  },
-  {
-    id: 'deal-7',
-    title: 'ERP Implementation',
-    accountName: 'Manufacturing Plus',
-    value: 180000,
-    owner: {
-      id: 'sarah-wilson',
-      name: 'Sarah Wilson',
-      avatar: "https://images.unsplash.com/photo-1648466982925-65dac4ed0814",
-      avatarAlt: 'Professional headshot of Sarah Wilson with blonde hair in business attire'
-    },
-    closeDate: '2024-12-20',
-    priority: 'High',
-    probability: 100,
-    stage: 'won',
-    tags: ['ERP', 'Implementation', 'Enterprise'],
-    createdAt: '2024-10-15T14:30:00Z',
-    updatedAt: '2024-12-20T16:45:00Z'
-  },
-  {
-    id: 'deal-8',
-    title: 'Website Redesign',
-    accountName: 'Local Business Co',
-    value: 15000,
-    owner: {
-      id: 'mike-johnson',
-      name: 'Mike Johnson',
-      avatar: "https://images.unsplash.com/photo-1722368378695-8a56b520fcf0",
-      avatarAlt: 'Professional headshot of Mike Johnson with dark hair and glasses'
-    },
-    closeDate: '2024-11-30',
-    priority: 'Low',
-    probability: 0,
-    stage: 'lost',
-    tags: ['Website', 'Design'],
-    createdAt: '2024-10-01T09:00:00Z',
-    updatedAt: '2024-11-30T17:00:00Z'
-  }];
-
-
   useEffect(() => {
-    setDeals(mockDeals);
+    fetchDeals();
   }, []);
+
+  const fetchDeals = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('deals')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setDeals((data || []).map(mapDbDeal));
+    } catch (error) {
+      console.error('Error fetching deals:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSidebarToggle = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -207,39 +89,93 @@ const Pipeline = () => {
     setIsAddDealModalOpen(true);
   };
 
-  const handleSaveDeal = (newDeal) => {
-    setDeals((prevDeals) => [...prevDeals, newDeal]);
+  const handleSaveDeal = async (newDeal) => {
+    try {
+      const { data, error } = await supabase
+        .from('deals')
+        .insert({
+          title: newDeal.title,
+          account_name: newDeal.accountName,
+          value: newDeal.value,
+          owner_name: newDeal.owner?.name,
+          owner_avatar: newDeal.owner?.avatar,
+          close_date: newDeal.closeDate,
+          priority: newDeal.priority,
+          probability: newDeal.probability,
+          stage: newDeal.stage,
+          description: newDeal.description,
+          tags: newDeal.tags
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      setDeals((prev) => [mapDbDeal(data), ...prev]);
+    } catch (error) {
+      console.error('Error saving deal:', error);
+    }
   };
 
-  const handleDealMove = (dealId, newStageId) => {
-    setDeals((prevDeals) =>
-    prevDeals?.map((deal) =>
-    deal?.id === dealId ?
-    { ...deal, stage: newStageId, updatedAt: new Date()?.toISOString() } :
-    deal
-    )
+  const handleDealMove = async (dealId, newStageId) => {
+    // Optimistic update
+    setDeals((prev) =>
+      prev.map((deal) =>
+        deal.id === dealId
+          ? { ...deal, stage: newStageId, updatedAt: new Date().toISOString() }
+          : deal
+      )
     );
+    try {
+      const { error } = await supabase
+        .from('deals')
+        .update({ stage: newStageId, updated_at: new Date().toISOString() })
+        .eq('id', dealId);
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error moving deal:', error);
+      fetchDeals(); // revert on failure
+    }
   };
 
   const handleEditDeal = (deal) => {
     // Implement edit functionality
   };
 
-  const handleDeleteDeal = (dealId) => {
-    if (window.confirm('Are you sure you want to delete this deal?')) {
-      setDeals((prevDeals) => prevDeals?.filter((deal) => deal?.id !== dealId));
+  const handleDeleteDeal = async (dealId) => {
+    if (!window.confirm('Are you sure you want to delete this deal?')) return;
+    setDeals((prev) => prev.filter((deal) => deal.id !== dealId));
+    try {
+      const { error } = await supabase.from('deals').delete().eq('id', dealId);
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error deleting deal:', error);
+      fetchDeals(); // revert on failure
     }
   };
 
-  const handleCloneDeal = (deal) => {
-    const clonedDeal = {
-      ...deal,
-      id: `deal-${Date.now()}`,
-      title: `${deal?.title} (Copy)`,
-      createdAt: new Date()?.toISOString(),
-      updatedAt: new Date()?.toISOString()
-    };
-    setDeals((prevDeals) => [...prevDeals, clonedDeal]);
+  const handleCloneDeal = async (deal) => {
+    try {
+      const { data, error } = await supabase
+        .from('deals')
+        .insert({
+          title: `${deal.title} (Copy)`,
+          account_name: deal.accountName,
+          value: deal.value,
+          owner_name: deal.owner?.name,
+          owner_avatar: deal.owner?.avatar,
+          close_date: deal.closeDate,
+          priority: deal.priority,
+          probability: deal.probability,
+          stage: deal.stage,
+          description: deal.description,
+          tags: deal.tags
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      setDeals((prev) => [mapDbDeal(data), ...prev]);
+    } catch (error) {
+      console.error('Error cloning deal:', error);
+    }
   };
 
   const handleFiltersChange = (newFilters) => {
@@ -375,49 +311,59 @@ const Pipeline = () => {
 
           {/* Pipeline Board */}
           <div className="bg-card border border-border rounded-xl p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3">
-                <Icon name="Kanban" size={24} className="text-primary" />
-                <div>
-                  <h2 className="text-xl font-bold text-card-foreground">Pipeline Board</h2>
-                  <p className="text-base font-medium text-foreground">
-                    {filteredDeals?.length} deal{filteredDeals?.length !== 1 ? 's' : ''} • 
-                    <span className="text-primary font-semibold ml-1">
-                      {new Intl.NumberFormat('en-US', {
-                        style: 'currency',
-                        currency: 'USD',
-                        minimumFractionDigits: 0
-                      })?.format(filteredDeals?.reduce((sum, deal) => sum + deal?.value, 0))}
-                    </span>
-                  </p>
+            {loading && (
+              <div className="p-12 text-center">
+                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Loading pipeline...</p>
+              </div>
+            )}
+            {!loading && (
+              <>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center space-x-3">
+                    <Icon name="Kanban" size={24} className="text-primary" />
+                    <div>
+                      <h2 className="text-xl font-bold text-card-foreground">Pipeline Board</h2>
+                      <p className="text-base font-medium text-foreground">
+                        {filteredDeals?.length} deal{filteredDeals?.length !== 1 ? 's' : ''} •
+                        <span className="text-primary font-semibold ml-1">
+                          {new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: 'USD',
+                            minimumFractionDigits: 0
+                          })?.format(filteredDeals?.reduce((sum, deal) => sum + deal?.value, 0))}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Kanban Board with Horizontal Scroll */}
-            <div className="overflow-x-auto">
-              <div className="flex gap-6 min-h-[600px] w-max min-w-full">
-                {pipelineStages?.map((stage) =>
-                <motion.div
-                  key={stage?.id}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: pipelineStages?.indexOf(stage) * 0.1 }}
-                  className="flex-shrink-0 w-72 md:w-80 h-full">
+                {/* Kanban Board with Horizontal Scroll */}
+                <div className="overflow-x-auto">
+                  <div className="flex gap-6 min-h-[600px] w-max min-w-full">
+                    {pipelineStages?.map((stage) =>
+                    <motion.div
+                      key={stage?.id}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: pipelineStages?.indexOf(stage) * 0.1 }}
+                      className="flex-shrink-0 w-72 md:w-80 h-full">
 
-                    <PipelineColumn
-                    stage={stage}
-                    deals={getDealsByStage(stage?.id)}
-                    onDealMove={handleDealMove}
-                    onAddDeal={handleAddDeal}
-                    onEditDeal={handleEditDeal}
-                    onDeleteDeal={handleDeleteDeal}
-                    onCloneDeal={handleCloneDeal} />
+                        <PipelineColumn
+                        stage={stage}
+                        deals={getDealsByStage(stage?.id)}
+                        onDealMove={handleDealMove}
+                        onAddDeal={handleAddDeal}
+                        onEditDeal={handleEditDeal}
+                        onDeleteDeal={handleDeleteDeal}
+                        onCloneDeal={handleCloneDeal} />
 
-                  </motion.div>
-                )}
-              </div>
-            </div>
+                      </motion.div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Mobile Pipeline View */}

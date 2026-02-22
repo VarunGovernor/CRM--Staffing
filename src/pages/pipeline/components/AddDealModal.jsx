@@ -109,28 +109,23 @@ const AddDealModal = ({ isOpen, onClose, onSave, initialStage = null }) => {
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
+      const ownerLabel = ownerOptions?.find(o => o?.value === formData?.owner)?.label || '';
       const newDeal = {
-        id: `deal-${Date.now()}`,
         title: formData?.title?.trim(),
         accountName: formData?.accountName?.trim(),
         value: parseFloat(formData?.value),
         owner: {
           id: formData?.owner,
-          name: ownerOptions?.find(o => o?.value === formData?.owner)?.label || '',
-          avatar: `https://randomuser.me/api/portraits/men/${Math.floor(Math.random() * 50)}.jpg`,
-          avatarAlt: `Professional headshot of ${ownerOptions?.find(o => o?.value === formData?.owner)?.label || 'team member'}`
+          name: ownerLabel,
+          avatar: '',
+          avatarAlt: `Profile picture of ${ownerLabel}`
         },
         closeDate: formData?.closeDate,
         priority: formData?.priority,
         probability: parseFloat(formData?.probability),
         stage: formData?.stage,
         description: formData?.description?.trim(),
-        tags: formData?.tags ? formData?.tags?.split(',')?.map(tag => tag?.trim())?.filter(Boolean) : [],
-        createdAt: new Date()?.toISOString(),
-        updatedAt: new Date()?.toISOString()
+        tags: formData?.tags ? formData?.tags?.split(',')?.map(tag => tag?.trim())?.filter(Boolean) : []
       };
 
       onSave(newDeal);
