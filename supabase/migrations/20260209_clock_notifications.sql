@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS public.clock_entries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.user_profiles(id) ON DELETE CASCADE,
     clock_in TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    clock_out TIMESTAMPTZ,
+    clock_out TIMESTAMPTZ
     duration_minutes INTEGER,
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP

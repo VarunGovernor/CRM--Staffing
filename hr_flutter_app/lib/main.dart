@@ -6,6 +6,10 @@ import 'providers/auth_provider.dart';
 import 'providers/clock_provider.dart';
 import 'router.dart';
 
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'services/push_notification_service.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -13,6 +17,11 @@ void main() async {
     url: SupabaseConfig.url,
     anonKey: SupabaseConfig.anonKey,
   );
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  await PushNotificationService.init();
 
   runApp(
     MultiProvider(

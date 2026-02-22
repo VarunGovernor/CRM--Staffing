@@ -17,10 +17,23 @@ class ClockService {
     return ClockEntry.fromJson(response);
   }
 
-  Future<ClockEntry> clockIn(String userId) async {
+  Future<ClockEntry> clockIn(
+    String userId, {
+    double? latitude,
+    double? longitude,
+    bool isRemote = false,
+    int? distanceMeters,
+  }) async {
     final response = await _client
         .from('clock_entries')
-        .insert({'user_id': userId, 'clock_in': DateTime.now().toUtc().toIso8601String()})
+        .insert({
+          'user_id': userId,
+          'clock_in': DateTime.now().toUtc().toIso8601String(),
+          if (latitude != null) 'latitude': latitude,
+          if (longitude != null) 'longitude': longitude,
+          'is_remote': isRemote,
+          if (distanceMeters != null) 'distance_meters': distanceMeters,
+        })
         .select()
         .single();
     return ClockEntry.fromJson(response);

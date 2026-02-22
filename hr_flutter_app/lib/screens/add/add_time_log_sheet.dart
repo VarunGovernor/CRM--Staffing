@@ -59,16 +59,20 @@ class _AddTimeLogSheetState extends State<AddTimeLogSheet> {
         children: [
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text('Select Project',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            child: Text(
+              'Select Project',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
           ),
-          ...projects.map((p) => ListTile(
-                title: Text(p),
-                trailing: _projectName == p
-                    ? const Icon(Icons.check, color: AppColors.blue)
-                    : null,
-                onTap: () => Navigator.pop(context, p),
-              )),
+          ...projects.map(
+            (p) => ListTile(
+              title: Text(p),
+              trailing: _projectName == p
+                  ? const Icon(Icons.check, color: AppColors.blue)
+                  : null,
+              onTap: () => Navigator.pop(context, p),
+            ),
+          ),
           const SizedBox(height: 8),
         ],
       ),
@@ -77,7 +81,13 @@ class _AddTimeLogSheetState extends State<AddTimeLogSheet> {
   }
 
   Future<void> _pickJob() async {
-    final jobs = ['Development', 'Testing', 'Design', 'Documentation', 'Meeting'];
+    final jobs = [
+      'Development',
+      'Testing',
+      'Design',
+      'Documentation',
+      'Meeting',
+    ];
     final result = await showModalBottomSheet<String>(
       context: context,
       builder: (_) => Column(
@@ -85,16 +95,20 @@ class _AddTimeLogSheetState extends State<AddTimeLogSheet> {
         children: [
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text('Select Job',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            child: Text(
+              'Select Job',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
           ),
-          ...jobs.map((j) => ListTile(
-                title: Text(j),
-                trailing: _job == j
-                    ? const Icon(Icons.check, color: AppColors.blue)
-                    : null,
-                onTap: () => Navigator.pop(context, j),
-              )),
+          ...jobs.map(
+            (j) => ListTile(
+              title: Text(j),
+              trailing: _job == j
+                  ? const Icon(Icons.check, color: AppColors.blue)
+                  : null,
+              onTap: () => Navigator.pop(context, j),
+            ),
+          ),
           const SizedBox(height: 8),
         ],
       ),
@@ -132,9 +146,9 @@ class _AddTimeLogSheetState extends State<AddTimeLogSheet> {
 
   void _submit() {
     if (_job == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a job')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a job')));
       return;
     }
     Navigator.pop(context);
@@ -208,23 +222,30 @@ class _AddTimeLogSheetState extends State<AddTimeLogSheet> {
                         onTap: _pickDate,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 14),
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
                           child: Row(
                             children: [
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Date',
-                                        style: TextStyle(
-                                            fontSize: 13,
-                                            color: AppColors.textGray)),
+                                    const Text(
+                                      'Date',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: AppColors.textGray,
+                                      ),
+                                    ),
                                     const SizedBox(height: 2),
-                                    Text(_fmt(_date),
-                                        style: const TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w600)),
+                                    Text(
+                                      _fmt(_date),
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -316,29 +337,31 @@ class _AddTimeLogSheetState extends State<AddTimeLogSheet> {
                                   onTap: () => _pickTime(true),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
-                                        vertical: 10, horizontal: 12),
+                                      vertical: 10,
+                                      horizontal: 12,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color:
-                                          const Color(0xFFF1F5F9),
-                                      borderRadius:
-                                          BorderRadius.circular(8),
+                                      color: const Color(0xFFF1F5F9),
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        const Text('Start',
-                                            style: TextStyle(
-                                                fontSize: 11,
-                                                color:
-                                                    AppColors.textGray)),
+                                        const Text(
+                                          'Start',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: AppColors.textGray,
+                                          ),
+                                        ),
                                         Text(
                                           _startTime != null
                                               ? _fmtTime(_startTime!)
                                               : '--:-- --',
                                           style: const TextStyle(
-                                              fontWeight:
-                                                  FontWeight.w600),
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -346,40 +369,42 @@ class _AddTimeLogSheetState extends State<AddTimeLogSheet> {
                                 ),
                               ),
                               const Padding(
-                                padding:
-                                    EdgeInsets.symmetric(horizontal: 8),
-                                child: Text('→',
-                                    style: TextStyle(
-                                        color: AppColors.textGray)),
+                                padding: EdgeInsets.symmetric(horizontal: 8),
+                                child: Text(
+                                  '→',
+                                  style: TextStyle(color: AppColors.textGray),
+                                ),
                               ),
                               Expanded(
                                 child: GestureDetector(
                                   onTap: () => _pickTime(false),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
-                                        vertical: 10, horizontal: 12),
+                                      vertical: 10,
+                                      horizontal: 12,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color:
-                                          const Color(0xFFF1F5F9),
-                                      borderRadius:
-                                          BorderRadius.circular(8),
+                                      color: const Color(0xFFF1F5F9),
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        const Text('End',
-                                            style: TextStyle(
-                                                fontSize: 11,
-                                                color:
-                                                    AppColors.textGray)),
+                                        const Text(
+                                          'End',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: AppColors.textGray,
+                                          ),
+                                        ),
                                         Text(
                                           _endTime != null
                                               ? _fmtTime(_endTime!)
                                               : '--:-- --',
                                           style: const TextStyle(
-                                              fontWeight:
-                                                  FontWeight.w600),
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -397,7 +422,8 @@ class _AddTimeLogSheetState extends State<AddTimeLogSheet> {
                               backgroundColor: AppColors.green,
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8)),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
                           ),
                         ],
@@ -406,7 +432,9 @@ class _AddTimeLogSheetState extends State<AddTimeLogSheet> {
                         Text(
                           _durationDisplay,
                           style: const TextStyle(
-                              fontSize: 28, fontWeight: FontWeight.bold),
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 8),
 
@@ -415,16 +443,18 @@ class _AddTimeLogSheetState extends State<AddTimeLogSheet> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Text('Billable Status',
-                                style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w500)),
+                            const Text(
+                              'Billable Status',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                             const Spacer(),
                             Switch(
                               value: _billable,
-                              activeColor: AppColors.green,
-                              onChanged: (v) =>
-                                  setState(() => _billable = v),
+                              activeThumbColor: AppColors.green,
+                              onChanged: (v) => setState(() => _billable = v),
                             ),
                           ],
                         ),
@@ -455,8 +485,11 @@ class _ModeTab extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const _ModeTab(
-      {required this.label, required this.selected, required this.onTap});
+  const _ModeTab({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {

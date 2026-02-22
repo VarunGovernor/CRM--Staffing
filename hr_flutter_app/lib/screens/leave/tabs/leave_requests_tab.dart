@@ -43,7 +43,7 @@ class _LeaveRequestsTabState extends State<LeaveRequestsTab> {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: _requests.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (_, i) => _RequestCard(_requests[i]),
     );
   }

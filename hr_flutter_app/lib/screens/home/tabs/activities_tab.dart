@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../providers/clock_provider.dart';
+import '../../../services/location_service.dart';
 import '../../../services/schedule_service.dart';
 import '../../../services/leave_service.dart';
 import '../../../models/work_schedule.dart';
@@ -90,17 +92,90 @@ class _ActivitiesTabState extends State<ActivitiesTab> {
   }
 }
 
-class _CheckInCard extends StatelessWidget {
+class _CheckInCard extends StatefulWidget {
+  @override
+  State<_CheckInCard> createState() => _CheckInCardState();
+}
+
+class _CheckInCardState extends State<_CheckInCard> {
+  final _locationService = LocationService();
+  bool _locating = false;
+
+  /// Handles GPS-aware clock-in: requests location, shows remote warning if
+  /// outside office radius, then calls ClockProvider.clockIn with coordinates.
+  Future<void> _handleClockIn(ClockProvider clock, String userId) async {
+    setState(() => _locating = true);
+
+    Position? pos;
+    bool isRemote = false;
+    int? distanceM;
+
+    try {
+      final perm = await _locationService.requestPermission();
+      if (perm == LocationPermission.whileInUse ||
+          perm == LocationPermission.always) {
+        pos = await _locationService.getCurrentPosition();
+        if (pos != null) {
+          distanceM = _locationService.distanceFromOffice(pos).round();
+          isRemote = !_locationService.isWithinOffice(pos);
+        }
+      }
+    } catch (_) {
+      // Location unavailable — proceed without GPS data
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
+
+    if (!mounted) return;
+
+    // Show warning dialog if employee is outside office radius
+    if (isRemote && pos != null) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Working Remotely?'),
+          content: Text(
+            'You are ${distanceM}m from the office.\n'
+            'Your clock-in will be flagged as remote.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Clock In Anyway'),
+            ),
+          ],
+        ),
+      );
+      if (proceed != true || !mounted) return;
+    }
+
+    await clock.clockIn(
+      userId,
+      latitude: pos?.latitude,
+      longitude: pos?.longitude,
+      isRemote: isRemote,
+      distanceMeters: distanceM,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<ClockProvider>(
       builder: (context, clock, _) {
+        final busy = clock.loading || _locating;
         return Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)
+            ],
           ),
           child: Row(
             children: [
@@ -113,13 +188,24 @@ class _CheckInCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      clock.isClockedIn ? 'Currently checked in' : 'Yet to check-in',
+                      clock.isClockedIn
+                          ? 'Currently checked in'
+                          : 'Yet to check-in',
                       style: TextStyle(
-                        color: clock.isClockedIn ? AppColors.green : AppColors.primary,
+                        color: clock.isClockedIn
+                            ? AppColors.green
+                            : AppColors.primary,
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
                       ),
                     ),
+                    if (_locating)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 4),
+                        child: Text('Getting location…',
+                            style: TextStyle(
+                                fontSize: 11, color: AppColors.textGray)),
+                      ),
                   ],
                 ),
               ),
@@ -127,29 +213,33 @@ class _CheckInCard extends StatelessWidget {
               SizedBox(
                 height: 48,
                 child: ElevatedButton(
-                  onPressed: clock.loading
+                  onPressed: busy
                       ? null
                       : () {
-                          final userId = Supabase.instance.client.auth.currentUser?.id;
+                          final userId = Supabase.instance.client.auth
+                              .currentUser?.id;
                           if (userId == null) return;
                           if (clock.isClockedIn) {
                             clock.clockOut();
                           } else {
-                            clock.clockIn(userId);
+                            _handleClockIn(clock, userId);
                           }
                         },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: clock.isClockedIn ? AppColors.primary : AppColors.green,
+                    backgroundColor:
+                        clock.isClockedIn ? AppColors.primary : AppColors.green,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
-                  child: clock.loading
+                  child: busy
                       ? const SizedBox(
                           width: 18,
                           height: 18,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2),
                         )
                       : Text(
                           clock.isClockedIn ? 'Check-Out' : 'Check-In',
@@ -166,7 +256,6 @@ class _CheckInCard extends StatelessWidget {
   }
 
   List<Widget> _buildTimerDigits(String formatted) {
-    // formatted: HH:MM:SS
     final parts = formatted.split(':');
     final widgets = <Widget>[];
     for (int i = 0; i < parts.length; i++) {
@@ -174,7 +263,8 @@ class _CheckInCard extends StatelessWidget {
       if (i < parts.length - 1) {
         widgets.add(const Padding(
           padding: EdgeInsets.symmetric(horizontal: 4),
-          child: Text(':', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          child:
+              Text(':', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         ));
       }
     }
@@ -231,7 +321,7 @@ class _WorkScheduleCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)],
       ),
       child: Column(
         children: [
@@ -408,7 +498,7 @@ class _AbsentCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -485,7 +575,7 @@ class _UpcomingHolidaysCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)],
       ),
       child: Column(
         children: [

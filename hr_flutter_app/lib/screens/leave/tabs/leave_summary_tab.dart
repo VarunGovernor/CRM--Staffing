@@ -88,7 +88,7 @@ class _LeaveSummaryTabState extends State<LeaveSummaryTab> {
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
                             itemCount: _balances.length,
-                            separatorBuilder: (_, __) => const SizedBox(width: 12),
+                            separatorBuilder: (_, _) => const SizedBox(width: 12),
                             itemBuilder: (_, i) => _LeaveBalanceChip(_balances[i]),
                           ),
                         ),

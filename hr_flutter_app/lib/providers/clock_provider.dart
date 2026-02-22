@@ -42,12 +42,24 @@ class ClockProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> clockIn(String userId) async {
+  Future<void> clockIn(
+    String userId, {
+    double? latitude,
+    double? longitude,
+    bool isRemote = false,
+    int? distanceMeters,
+  }) async {
     _loading = true;
     _error = null;
     notifyListeners();
     try {
-      _activeEntry = await _service.clockIn(userId);
+      _activeEntry = await _service.clockIn(
+        userId,
+        latitude: latitude,
+        longitude: longitude,
+        isRemote: isRemote,
+        distanceMeters: distanceMeters,
+      );
       _elapsed = Duration.zero;
       _startTimer();
     } catch (e) {
