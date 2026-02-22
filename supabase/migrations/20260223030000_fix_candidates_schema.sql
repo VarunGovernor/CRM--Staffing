@@ -18,10 +18,19 @@ ALTER TABLE public.candidates
   ADD COLUMN IF NOT EXISTS linkedin_url TEXT,
   ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES public.user_profiles(id) ON DELETE SET NULL;
 
+-- Add days_in_market column used by web app table header
+ALTER TABLE public.candidates
+  ADD COLUMN IF NOT EXISTS days_in_market INTEGER DEFAULT 0;
+
 -- Copy location → current_location where not already set
 UPDATE public.candidates
 SET current_location = location
 WHERE current_location IS NULL AND location IS NOT NULL;
+
+-- Populate skills array from the single `skill` TEXT column (split on comma)
+UPDATE public.candidates
+SET skills = string_to_array(trim(skill), ',')
+WHERE skill IS NOT NULL AND (skills IS NULL OR skills = ARRAY[]::TEXT[]);
 
 -- Notify PostgREST to reload its schema cache
 NOTIFY pgrst, 'reload schema';

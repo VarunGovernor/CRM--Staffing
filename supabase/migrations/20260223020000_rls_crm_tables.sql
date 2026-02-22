@@ -16,11 +16,10 @@ CREATE POLICY "staff_view_candidates" ON candidates
   );
 
 -- A candidate can see their own record (matched by email)
+-- Use auth.email() instead of subquery on auth.users (authenticated role cannot query auth.users directly)
 DROP POLICY IF EXISTS "candidate_view_own" ON candidates;
 CREATE POLICY "candidate_view_own" ON candidates
-  FOR SELECT USING (
-    email = (SELECT email FROM auth.users WHERE id = auth.uid())
-  );
+  FOR SELECT USING (email = auth.email());
 
 -- ── placements ───────────────────────────────────────────────
 -- Staff roles can see all placements
@@ -40,7 +39,7 @@ CREATE POLICY "candidate_view_own_placements" ON placements
   FOR SELECT USING (
     candidate_id IN (
       SELECT candidate_id FROM candidates
-      WHERE email = (SELECT email FROM auth.users WHERE id = auth.uid())
+      WHERE email = auth.email()
     )
   );
 
@@ -63,6 +62,6 @@ CREATE POLICY "candidate_view_own_invoices" ON invoices
     placement_id IN (
       SELECT p.placement_id FROM placements p
       JOIN candidates c ON c.candidate_id = p.candidate_id
-      WHERE c.email = (SELECT email FROM auth.users WHERE id = auth.uid())
+      WHERE c.email = auth.email()
     )
   );
