@@ -32,22 +32,31 @@ class _PayslipsScreenState extends State<PayslipsScreen> {
     if (userId == null) return;
 
     try {
-      // First try to find a candidate linked to this user via email
+      // Find candidate record matching the logged-in user's email
       final user = _client.auth.currentUser!;
       final candidateRes = await _client
           .from('candidates')
-          .select('id')
+          .select('candidate_id')
           .eq('email', user.email ?? '')
           .maybeSingle();
 
       List<dynamic> invoices = [];
       if (candidateRes != null) {
-        final candidateId = candidateRes['id'] as String;
-        invoices = await _client
-            .from('invoices')
-            .select()
-            .eq('candidate_id', candidateId)
-            .order('invoice_date', ascending: false);
+        final candidateId = candidateRes['candidate_id'] as String;
+        // invoices link via placements: candidate → placement → invoice
+        final placements = await _client
+            .from('placements')
+            .select('placement_id')
+            .eq('candidate_id', candidateId);
+        final placementIds =
+            (placements as List).map((p) => p['placement_id']).toList();
+        if (placementIds.isNotEmpty) {
+          invoices = await _client
+              .from('invoices')
+              .select()
+              .inFilter('placement_id', placementIds)
+              .order('due_date', ascending: false);
+        }
       }
 
       setState(() => _payslips = List<Map<String, dynamic>>.from(invoices));
@@ -101,18 +110,11 @@ class _PayslipsScreenState extends State<PayslipsScreen> {
   }
 
   Widget _buildPayslipCard(Map<String, dynamic> ps) {
-    final status = ps['status'] as String? ?? 'pending';
-    final netPay = (ps['net_pay'] as num?)?.toDouble() ?? 0.0;
-    final periodStart = ps['period_start'] != null
-        ? DateTime.parse(ps['period_start'] as String)
-        : null;
-    final periodEnd = ps['period_end'] != null
-        ? DateTime.parse(ps['period_end'] as String)
-        : null;
-
-    final periodLabel = (periodStart != null && periodEnd != null)
-        ? '${DateFormat('dd MMM').format(periodStart)} – ${DateFormat('dd MMM yyyy').format(periodEnd)}'
-        : ps['invoice_number'] as String? ?? '—';
+    final status = (ps['status'] as String? ?? 'pending').toLowerCase();
+    final netPay =
+        double.tryParse(ps['total_amount']?.toString() ?? '0') ?? 0.0;
+    final periodLabel =
+        ps['invoice_month'] as String? ?? ps['invoice_id'] as String? ?? '—';
 
     Color statusColor;
     switch (status) {
@@ -190,10 +192,13 @@ class _PayslipsScreenState extends State<PayslipsScreen> {
   }
 
   void _showDetail(Map<String, dynamic> ps) {
-    final gross = (ps['gross_earnings'] as num?)?.toDouble() ?? 0.0;
-    final deductions = (ps['deductions'] as num?)?.toDouble() ?? 0.0;
-    final net = (ps['net_pay'] as num?)?.toDouble() ?? 0.0;
-    final hours = (ps['hours_worked'] as num?)?.toDouble() ?? 0.0;
+    final hours =
+        double.tryParse(ps['total_hours']?.toString() ?? '0') ?? 0.0;
+    final billRate =
+        double.tryParse(ps['bill_rate']?.toString() ?? '0') ?? 0.0;
+    final net =
+        double.tryParse(ps['total_amount']?.toString() ?? '0') ?? 0.0;
+    final gross = hours * billRate; // bill_rate × hours = gross billing
     final fmt = NumberFormat('#,##,###.##');
 
     showModalBottomSheet(
@@ -230,15 +235,15 @@ class _PayslipsScreenState extends State<PayslipsScreen> {
                       fontWeight: FontWeight.bold,
                       color: AppColors.textDark)),
               const SizedBox(height: 20),
-              _detailRow('Invoice #', ps['invoice_number'] as String? ?? '—'),
+              _detailRow('Invoice #', ps['invoice_id'] as String? ?? '—'),
+              _detailRow('Period', ps['invoice_month'] as String? ?? '—'),
               _detailRow('Hours Worked', '${hours.toStringAsFixed(1)}h'),
+              _detailRow('Bill Rate', '₹${fmt.format(billRate)}/hr'),
               const Divider(height: 24),
-              _detailRow('Gross Earnings', '₹${fmt.format(gross)}',
+              _detailRow('Gross Billing', '₹${fmt.format(gross)}',
                   valueColor: AppColors.textDark),
-              _detailRow('Deductions', '− ₹${fmt.format(deductions)}',
-                  valueColor: AppColors.primary),
               const Divider(height: 24),
-              _detailRow('Net Pay', '₹${fmt.format(net)}',
+              _detailRow('Total Amount', '₹${fmt.format(net)}',
                   valueColor: AppColors.green, bold: true),
             ],
           ),
