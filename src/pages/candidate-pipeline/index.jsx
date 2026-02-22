@@ -53,8 +53,9 @@ const CandidatePipeline = () => {
     const mapping = {
       'in_market': 'applied',
       'active': 'screening',
-      'placed': 'hired',
       'on_hold': 'interview',
+      'offer': 'offer',
+      'placed': 'hired',
       'inactive': 'applied'
     };
     return mapping[status] || 'applied';
@@ -86,7 +87,7 @@ const CandidatePipeline = () => {
       'applied': 'in_market',
       'screening': 'active',
       'interview': 'on_hold',
-      'offer': 'active',
+      'offer': 'offer',
       'hired': 'placed'
     };
 
