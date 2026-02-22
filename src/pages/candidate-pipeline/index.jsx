@@ -33,10 +33,9 @@ const CandidatePipeline = () => {
 
       if (error) throw error;
 
-      // Map candidate status to pipeline stages
       const mappedCandidates = (data || []).map(c => ({
         ...c,
-        pipeline_stage: mapStatusToStage(c.status),
+        pipeline_stage: c.pipeline_stage || 'applied',
         salary: c.pay_rate ? `$${Math.round(c.pay_rate * 2080 / 1000)}k` : 'N/A',
         job_type: 'Full-time'
       }));
@@ -47,18 +46,6 @@ const CandidatePipeline = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const mapStatusToStage = (status) => {
-    const mapping = {
-      'in_market': 'applied',
-      'active': 'screening',
-      'on_hold': 'interview',
-      'offer': 'offer',
-      'placed': 'hired',
-      'inactive': 'applied'
-    };
-    return mapping[status] || 'applied';
   };
 
   const getCandidatesByStage = (stageId) => {
@@ -77,24 +64,21 @@ const CandidatePipeline = () => {
     e.preventDefault();
     const candidateId = e.dataTransfer.getData('candidateId');
 
-    // Update local state optimistically
+    // Optimistic update
     setCandidates(prev => prev.map(c =>
       c.id === candidateId ? { ...c, pipeline_stage: stageId } : c
     ));
 
-    // Map stage back to status for database
-    const statusMapping = {
-      'applied': 'in_market',
-      'screening': 'active',
-      'interview': 'on_hold',
-      'offer': 'offer',
-      'hired': 'placed'
-    };
-
-    await supabase
-      .from('candidates')
-      .update({ status: statusMapping[stageId] })
-      .eq('id', candidateId);
+    try {
+      const { error } = await supabase
+        .from('candidates')
+        .update({ pipeline_stage: stageId })
+        .eq('id', candidateId);
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating pipeline stage:', error);
+      fetchCandidates(); // revert on failure
+    }
   };
 
   const getInitials = (firstName, lastName) => {
