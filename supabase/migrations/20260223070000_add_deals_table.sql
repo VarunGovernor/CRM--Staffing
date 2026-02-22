@@ -19,9 +19,24 @@ CREATE TABLE IF NOT EXISTS deals (
 -- Enable Row Level Security
 ALTER TABLE deals ENABLE ROW LEVEL SECURITY;
 
--- Allow all authenticated users to read and write deals
-CREATE POLICY "deals_authenticated_all" ON deals
+-- Drop old policy if it exists (safe to re-run)
+DROP POLICY IF EXISTS "deals_authenticated_all" ON deals;
+DROP POLICY IF EXISTS "deals_staff_all" ON deals;
+
+-- Staff roles can do everything with deals
+CREATE POLICY "deals_staff_all" ON deals
   FOR ALL
-  TO authenticated
-  USING (true)
-  WITH CHECK (true);
+  USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE id = auth.uid()
+        AND role IN ('admin', 'hr', 'recruiter', 'sales', 'finance')
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE id = auth.uid()
+        AND role IN ('admin', 'hr', 'recruiter', 'sales', 'finance')
+    )
+  );
