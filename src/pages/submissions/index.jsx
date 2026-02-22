@@ -32,6 +32,23 @@ const Submissions = () => {
     fetchSubmissions();
   }, []);
 
+  const handleStatusChange = async (submissionId, newStatus) => {
+    // Optimistic update
+    setSubmissions(prev =>
+      prev.map(s => s.id === submissionId ? { ...s, status: newStatus } : s)
+    );
+    try {
+      const { error } = await supabase
+        .from('submissions')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', submissionId);
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating submission status:', error);
+      fetchSubmissions(); // revert on failure
+    }
+  };
+
   const fetchSubmissions = async () => {
     try {
       setLoading(true);
@@ -217,10 +234,18 @@ const Submissions = () => {
                           <td className="px-6 py-4 text-sm text-foreground capitalize">
                             {submission?.submission_source?.replace('_', ' ') || 'Direct'}
                           </td>
-                          <td className="px-6 py-4">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(submission?.status)}`}>
-                              {submission?.status?.replace('_', ' ')?.toUpperCase()}
-                            </span>
+                          <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
+                            <select
+                              value={submission?.status}
+                              onChange={e => handleStatusChange(submission?.id, e.target.value)}
+                              className={`px-3 py-1 rounded-full text-xs font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30 ${getStatusColor(submission?.status)}`}
+                            >
+                              <option value="submitted">SUBMITTED</option>
+                              <option value="shortlisted">SHORTLISTED</option>
+                              <option value="interview_scheduled">INTERVIEW SCHEDULED</option>
+                              <option value="selected">SELECTED</option>
+                              <option value="rejected">REJECTED</option>
+                            </select>
                           </td>
                           <td className="px-6 py-4 text-sm text-muted-foreground">
                             {new Date(submission?.submission_date)?.toLocaleDateString()}
