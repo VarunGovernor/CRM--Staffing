@@ -11,18 +11,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'services/push_notification_service.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await Supabase.initialize(
-    url: SupabaseConfig.url,
-    anonKey: SupabaseConfig.anonKey,
-  );
-
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  await PushNotificationService.init();
 
   runApp(
     MultiProvider(
@@ -48,9 +38,26 @@ class _HrAppState extends State<HrApp> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) setState(() => _showSplash = false);
-    });
+    _initAndWait();
+  }
+
+  Future<void> _initAndWait() async {
+    await Future.wait([
+      _initServices(),
+      Future.delayed(const Duration(milliseconds: 1000)),
+    ]);
+    if (mounted) setState(() => _showSplash = false);
+  }
+
+  Future<void> _initServices() async {
+    await Supabase.initialize(
+      url: SupabaseConfig.url,
+      anonKey: SupabaseConfig.anonKey,
+    );
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    await PushNotificationService.init();
   }
 
   @override
