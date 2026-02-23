@@ -8,14 +8,13 @@ import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useCandidates } from '../../contexts/CandidatesContext';
 import CandidateDrawer from './components/CandidateDrawer';
 import CandidateForm from './components/CandidateForm';
 import Button from '../../components/ui/Button';
 
 const Candidates = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [candidates, setCandidates] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     status: '',
@@ -29,25 +28,11 @@ const Candidates = () => {
   const [editingCandidate, setEditingCandidate] = useState(null);
   const [recruiters, setRecruiters] = useState([]);
   const { user } = useAuth();
+  const { candidates, loading, fetchCandidates } = useCandidates();
 
   useEffect(() => {
-    fetchCandidates();
     fetchRecruiters();
   }, []);
-
-  const fetchCandidates = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase?.from('candidates')?.select('*, recruiter:user_profiles!recruiter_id(full_name)')?.order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setCandidates(data || []);
-    } catch (error) {
-      console.error('Error fetching candidates:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchRecruiters = async () => {
     try {

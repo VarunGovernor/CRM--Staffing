@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Header from '../../components/ui/Header';
 import Sidebar from '../../components/ui/Sidebar';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
-import { supabase } from '../../lib/supabase';
+import { useCandidates } from '../../contexts/CandidatesContext';
 
 const PIPELINE_STAGES = [
   { id: 'applied', name: 'Applied', color: 'bg-blue-500' },
@@ -16,37 +16,14 @@ const PIPELINE_STAGES = [
 
 const CandidatePipeline = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [candidates, setCandidates] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { candidates: rawCandidates, loading, updateCandidate } = useCandidates();
 
-  useEffect(() => {
-    fetchCandidates();
-  }, []);
-
-  const fetchCandidates = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        ?.from('candidates')
-        ?.select('*, recruiter:user_profiles!recruiter_id(full_name)')
-        ?.order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const mappedCandidates = (data || []).map(c => ({
-        ...c,
-        pipeline_stage: c.pipeline_stage || 'applied',
-        salary: c.pay_rate ? `$${Math.round(c.pay_rate * 2080 / 1000)}k` : 'N/A',
-        job_type: 'Full-time'
-      }));
-
-      setCandidates(mappedCandidates);
-    } catch (error) {
-      console.error('Error fetching candidates:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const candidates = useMemo(() => rawCandidates.map(c => ({
+    ...c,
+    pipeline_stage: c.pipeline_stage || 'applied',
+    salary: c.pay_rate ? `$${Math.round(c.pay_rate * 2080 / 1000)}k` : 'N/A',
+    job_type: 'Full-time'
+  })), [rawCandidates]);
 
   const getCandidatesByStage = (stageId) => {
     return candidates.filter(c => c.pipeline_stage === stageId);
@@ -63,22 +40,7 @@ const CandidatePipeline = () => {
   const handleDrop = async (e, stageId) => {
     e.preventDefault();
     const candidateId = e.dataTransfer.getData('candidateId');
-
-    // Optimistic update
-    setCandidates(prev => prev.map(c =>
-      c.id === candidateId ? { ...c, pipeline_stage: stageId } : c
-    ));
-
-    try {
-      const { error } = await supabase
-        .from('candidates')
-        .update({ pipeline_stage: stageId })
-        .eq('id', candidateId);
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error updating pipeline stage:', error);
-      fetchCandidates(); // revert on failure
-    }
+    await updateCandidate(candidateId, { pipeline_stage: stageId });
   };
 
   const getInitials = (firstName, lastName) => {
