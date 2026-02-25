@@ -97,4 +97,4 @@ Build the application for production:
 ```bash
 npm run build
 ```
-@2026 All copyrights are reserved by Varun Governor
+@2026 All copyrights are reserved by Naseer Ahmed
