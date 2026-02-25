@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import SignupHeader from './components/SignupHeader';
 import SignupForm from './components/SignupForm';
@@ -7,6 +7,8 @@ import SecurityBadges from '../login/components/SecurityBadges';
 
 const SignupPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const prefillEmail = searchParams.get('email') || '';
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem('isAuthenticated');
@@ -27,7 +29,7 @@ const SignupPage = () => {
         <div className="relative w-full max-w-md">
           <div className="bg-card border border-border rounded-xl shadow-elevation-2 p-8">
             <SignupHeader />
-            <SignupForm />
+            <SignupForm prefillEmail={prefillEmail} />
             <SecurityBadges />
           </div>
 

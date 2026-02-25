@@ -184,6 +184,66 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  const checkEmailExists = async (email) => {
+    try {
+      const { data, error } = await supabase
+        ?.from('user_profiles')
+        ?.select('id')
+        ?.eq('email', email)
+        ?.maybeSingle()
+      if (error) throw error
+      return { exists: !!data, error: null }
+    } catch (error) {
+      return { exists: false, error }
+    }
+  }
+
+  const sendOtp = async (email) => {
+    try {
+      const { error } = await supabase?.auth?.signInWithOtp({
+        email,
+        options: { shouldCreateUser: false }
+      })
+      return { error }
+    } catch (error) {
+      return { error: { message: 'Network error. Please try again.' } }
+    }
+  }
+
+  const sendOtpNewUser = async (email) => {
+    try {
+      const { error } = await supabase?.auth?.signInWithOtp({
+        email,
+        options: { shouldCreateUser: true }
+      })
+      return { error }
+    } catch (error) {
+      return { error: { message: 'Network error. Please try again.' } }
+    }
+  }
+
+  const verifyOtp = async (email, token) => {
+    try {
+      const { data, error } = await supabase?.auth?.verifyOtp({
+        email,
+        token,
+        type: 'email'
+      })
+      return { data, error }
+    } catch (error) {
+      return { data: null, error: { message: 'Network error. Please try again.' } }
+    }
+  }
+
+  const setPassword = async (password) => {
+    try {
+      const { data, error } = await supabase?.auth?.updateUser({ password })
+      return { data, error }
+    } catch (error) {
+      return { data: null, error: { message: 'Network error. Please try again.' } }
+    }
+  }
+
   const value = {
     user,
     userProfile,
@@ -195,6 +255,11 @@ export const AuthProvider = ({ children }) => {
     getSession,
     refreshSession,
     updateProfile,
+    checkEmailExists,
+    sendOtp,
+    sendOtpNewUser,
+    verifyOtp,
+    setPassword,
     isAuthenticated: !!user
   }
 

@@ -54,6 +54,8 @@ const AccountSettings = lazy(() => import('./pages/account-settings'));
 
 // Admin Pages (lazy loaded)
 const AdminActivity = lazy(() => import('./pages/admin-activity'));
+const AdminUsers = lazy(() => import('./pages/admin/users'));
+const PendingApproval = lazy(() => import('./pages/pending-approval'));
 
 const Routes = () => {
   return (
@@ -100,8 +102,12 @@ const Routes = () => {
         <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
         <Route path="/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
 
+        {/* Pending approval — protected (needs auth) but no approval check */}
+        <Route path="/pending-approval" element={<ProtectedRoute skipApprovalCheck><PendingApproval /></ProtectedRoute>} />
+
         {/* Admin Routes */}
         <Route path="/admin/activity" element={<ProtectedRoute><AdminActivity /></ProtectedRoute>} />
+        <Route path="/admin/users" element={<ProtectedRoute module="admin-users"><AdminUsers /></ProtectedRoute>} />
 
         <Route path="*" element={<NotFound />} />
       </RouterRoutes>

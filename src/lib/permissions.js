@@ -163,6 +163,14 @@ export const PERMISSION_MATRIX = {
     [ROLES.HR]: PERMISSION_LEVELS.NONE,
     [ROLES.FINANCE]: PERMISSION_LEVELS.NONE,
     [ROLES.EMPLOYEE]: PERMISSION_LEVELS.NONE
+  },
+  'admin-users': {
+    [ROLES.ADMIN]: PERMISSION_LEVELS.FULL,
+    [ROLES.SALES]: PERMISSION_LEVELS.NONE,
+    [ROLES.RECRUITER]: PERMISSION_LEVELS.NONE,
+    [ROLES.HR]: PERMISSION_LEVELS.NONE,
+    [ROLES.FINANCE]: PERMISSION_LEVELS.NONE,
+    [ROLES.EMPLOYEE]: PERMISSION_LEVELS.NONE
   }
 };
 
@@ -279,6 +287,12 @@ export const NAVIGATION_CONFIG = [
     path: '/admin/activity',
     icon: 'Activity',
     module: 'admin-activity'
+  },
+  {
+    label: 'User Management',
+    path: '/admin/users',
+    icon: 'UserCog',
+    module: 'admin-users'
   },
   {
     label: 'Settings',
@@ -435,7 +449,8 @@ export const MODULE_ROUTE_MAP = {
   '/profile': 'profile',
   '/settings/account': 'account-settings',
   '/settings/billing': 'billing',
-  '/admin/activity': 'admin-activity'
+  '/admin/activity': 'admin-activity',
+  '/admin/users': 'admin-users'
 };
 
 /**

@@ -24,7 +24,7 @@ const PermissionContext = createContext({
 // Hook to access permission context
 export const usePermissions = () => useContext(PermissionContext);
 
-const ProtectedRoute = ({ children, allowedRoles = [], module: explicitModule }) => {
+const ProtectedRoute = ({ children, allowedRoles = [], module: explicitModule, skipApprovalCheck = false }) => {
   const { user, loading, userProfile, profileLoading } = useAuth();
   const location = useLocation();
 
@@ -55,6 +55,11 @@ const ProtectedRoute = ({ children, allowedRoles = [], module: explicitModule })
         </div>
       </div>
     );
+  }
+
+  // If profile loaded but not yet approved by admin, redirect to pending screen
+  if (!skipApprovalCheck && userProfile && !userProfile.is_approved) {
+    return <Navigate to="/pending-approval" replace />;
   }
 
   const userRole = userProfile?.role || 'employee';
