@@ -47,6 +47,7 @@ const CandidatePipeline = lazy(() => import('./pages/candidate-pipeline'));
 const PayrollPage = lazy(() => import('./pages/payroll'));
 const Reports = lazy(() => import('./pages/reports'));
 const Activities = lazy(() => import('./pages/activities'));
+const VendorsPage = lazy(() => import('./pages/vendors'));
 
 // User Menu Pages (lazy loaded)
 const ProfileSettings = lazy(() => import('./pages/profile'));
@@ -83,6 +84,7 @@ const Routes = () => {
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/candidates" element={<ProtectedRoute><Candidates /></ProtectedRoute>} />
         <Route path="/submissions" element={<ProtectedRoute><Submissions /></ProtectedRoute>} />
+        <Route path="/vendors" element={<ProtectedRoute module="vendors"><VendorsPage /></ProtectedRoute>} />
         <Route path="/interviews" element={<ProtectedRoute><Interviews /></ProtectedRoute>} />
         <Route path="/placements" element={<ProtectedRoute><Placements /></ProtectedRoute>} />
         <Route path="/hr-onboarding" element={<ProtectedRoute><HROnboarding /></ProtectedRoute>} />

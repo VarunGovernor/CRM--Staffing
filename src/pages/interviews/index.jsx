@@ -3,7 +3,9 @@ import { motion } from 'framer-motion';
 import Header from '../../components/ui/Header';
 import Sidebar from '../../components/ui/Sidebar';
 import Icon from '../../components/AppIcon';
+import Button from '../../components/ui/Button';
 import { supabase } from '../../lib/supabase';
+import InterviewForm from './components/InterviewForm';
 
 const Interviews = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -12,6 +14,8 @@ const Interviews = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [modeFilter, setModeFilter] = useState('');
   const [roundFilter, setRoundFilter] = useState('');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingInterview, setEditingInterview] = useState(null);
 
   const filteredInterviews = useMemo(() => {
     return interviews?.filter(i => {
@@ -31,6 +35,17 @@ const Interviews = () => {
   useEffect(() => {
     fetchInterviews();
   }, []);
+
+  const handleEdit = (interview) => {
+    setEditingInterview(interview);
+    setIsFormOpen(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this interview?')) return;
+    const { error } = await supabase.from('interviews').delete().eq('id', id);
+    if (!error) setInterviews(prev => prev.filter(i => i.id !== id));
+  };
 
   const fetchInterviews = async () => {
     try {
@@ -83,9 +98,15 @@ const Interviews = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <div className="mb-8">
-              <h1 className="text-2xl lg:text-3xl font-bold text-foreground mb-2">Interview Management</h1>
-              <p className="text-muted-foreground">Schedule and track candidate interviews</p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
+              <div>
+                <h1 className="text-2xl lg:text-3xl font-bold text-foreground mb-2">Interview Management</h1>
+                <p className="text-muted-foreground">Schedule and track candidate interviews</p>
+              </div>
+              <Button onClick={() => { setEditingInterview(null); setIsFormOpen(true); }} className="flex items-center gap-2">
+                <Icon name="Plus" size={18} />
+                Schedule Interview
+              </Button>
             </div>
 
             {/* Filters */}
@@ -204,6 +225,7 @@ const Interviews = () => {
                         <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Mentor</th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Interviewer</th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -246,14 +268,20 @@ const Interviews = () => {
                           </td>
                           <td className="px-6 py-4">
                             {new Date(interview?.interview_date) >= new Date() ? (
-                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                                UPCOMING
-                              </span>
+                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">UPCOMING</span>
                             ) : (
-                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                                COMPLETED
-                              </span>
+                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">COMPLETED</span>
                             )}
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => handleEdit(interview)} className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors" title="Edit">
+                                <Icon name="Pencil" size={14} />
+                              </button>
+                              <button onClick={() => handleDelete(interview?.id)} className="p-1.5 hover:bg-red-50 rounded text-muted-foreground hover:text-red-600 transition-colors" title="Delete">
+                                <Icon name="Trash2" size={14} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -265,6 +293,13 @@ const Interviews = () => {
           </motion.div>
         </div>
       </main>
+
+      <InterviewForm
+        isOpen={isFormOpen}
+        onClose={() => { setIsFormOpen(false); setEditingInterview(null); }}
+        interview={editingInterview}
+        onSuccess={() => { setIsFormOpen(false); setEditingInterview(null); fetchInterviews(); }}
+      />
     </div>
   );
 };

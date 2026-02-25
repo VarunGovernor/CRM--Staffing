@@ -171,6 +171,14 @@ export const PERMISSION_MATRIX = {
     [ROLES.HR]: PERMISSION_LEVELS.NONE,
     [ROLES.FINANCE]: PERMISSION_LEVELS.NONE,
     [ROLES.EMPLOYEE]: PERMISSION_LEVELS.NONE
+  },
+  vendors: {
+    [ROLES.ADMIN]: PERMISSION_LEVELS.FULL,
+    [ROLES.SALES]: PERMISSION_LEVELS.EDIT,
+    [ROLES.RECRUITER]: PERMISSION_LEVELS.VIEW,
+    [ROLES.HR]: PERMISSION_LEVELS.NONE,
+    [ROLES.FINANCE]: PERMISSION_LEVELS.VIEW,
+    [ROLES.EMPLOYEE]: PERMISSION_LEVELS.NONE
   }
 };
 
@@ -239,6 +247,12 @@ export const NAVIGATION_CONFIG = [
     path: '/submissions',
     icon: 'Send',
     module: 'submissions'
+  },
+  {
+    label: 'Vendors',
+    path: '/vendors',
+    icon: 'Building2',
+    module: 'vendors'
   },
   {
     label: 'Interviews',

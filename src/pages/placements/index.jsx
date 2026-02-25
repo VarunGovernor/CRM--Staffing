@@ -3,7 +3,9 @@ import { motion } from 'framer-motion';
 import Header from '../../components/ui/Header';
 import Sidebar from '../../components/ui/Sidebar';
 import Icon from '../../components/AppIcon';
+import Button from '../../components/ui/Button';
 import { supabase } from '../../lib/supabase';
+import PlacementForm from './components/PlacementForm';
 
 const Placements = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -11,6 +13,8 @@ const Placements = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingPlacement, setEditingPlacement] = useState(null);
 
   const filteredPlacements = useMemo(() => {
     return placements?.filter(p => {
@@ -30,6 +34,17 @@ const Placements = () => {
   useEffect(() => {
     fetchPlacements();
   }, []);
+
+  const handleEdit = (placement) => {
+    setEditingPlacement(placement);
+    setIsFormOpen(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this placement?')) return;
+    const { error } = await supabase.from('placements').delete().eq('id', id);
+    if (!error) setPlacements(prev => prev.filter(p => p.id !== id));
+  };
 
   const fetchPlacements = async () => {
     try {
@@ -70,9 +85,15 @@ const Placements = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <div className="mb-8">
-              <h1 className="text-2xl lg:text-3xl font-bold text-foreground mb-2">Placement Management</h1>
-              <p className="text-muted-foreground">Track active placements and client engagements</p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
+              <div>
+                <h1 className="text-2xl lg:text-3xl font-bold text-foreground mb-2">Placement Management</h1>
+                <p className="text-muted-foreground">Track active placements and client engagements</p>
+              </div>
+              <Button onClick={() => { setEditingPlacement(null); setIsFormOpen(true); }} className="flex items-center gap-2">
+                <Icon name="Plus" size={18} />
+                Add Placement
+              </Button>
             </div>
 
             {/* Filters */}
@@ -156,6 +177,7 @@ const Placements = () => {
                         <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Margin</th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
                         <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Location</th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -195,6 +217,16 @@ const Placements = () => {
                             </span>
                           </td>
                           <td className="px-6 py-4 text-sm text-foreground">{placement?.location}</td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => handleEdit(placement)} className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors" title="Edit">
+                                <Icon name="Pencil" size={14} />
+                              </button>
+                              <button onClick={() => handleDelete(placement?.id)} className="p-1.5 hover:bg-red-50 rounded text-muted-foreground hover:text-red-600 transition-colors" title="Delete">
+                                <Icon name="Trash2" size={14} />
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -205,6 +237,13 @@ const Placements = () => {
           </motion.div>
         </div>
       </main>
+
+      <PlacementForm
+        isOpen={isFormOpen}
+        onClose={() => { setIsFormOpen(false); setEditingPlacement(null); }}
+        placement={editingPlacement}
+        onSuccess={() => { setIsFormOpen(false); setEditingPlacement(null); fetchPlacements(); }}
+      />
     </div>
   );
 };
