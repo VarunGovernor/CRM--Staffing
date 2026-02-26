@@ -127,8 +127,8 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header onMenuToggle={handleMenuToggle} isSidebarOpen={isSidebarOpen} />
-      <Sidebar isOpen={isSidebarOpen} onClose={handleSidebarClose} />
+      <Header onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} isSidebarOpen={isSidebarOpen} />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <main className="lg:ml-64 pt-16">
         <div className="flex">
           {/* Main Content */}

@@ -6,18 +6,17 @@ import Input from '../../../components/ui/Input';
 import Icon from '../../../components/AppIcon';
 
 // Steps:
-//  'email'        → enter email, check if registered
-//  'password'     → registered user: enter password
-//  'forgot-otp'   → send OTP for forgot password, enter code
+//  'login'        → email + password (default)
+//  'forgot-otp'   → enter OTP sent to email
 //  'new-password' → set new password after OTP verified
 
 const LoginForm = () => {
   const navigate = useNavigate();
-  const { signIn, checkEmailExists, sendOtp, verifyOtp, setPassword } = useAuth();
+  const { signIn, sendOtp, verifyOtp, setPassword } = useAuth();
 
-  const [step, setStep] = useState('email');
+  const [step, setStep] = useState('login');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [password, setPasswordInput] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
@@ -27,35 +26,19 @@ const LoginForm = () => {
 
   const clearErrors = () => setErrors({});
 
-  // ── Step 1: check email ───────────────────────────────────────────────────
-  const handleEmailContinue = async (e) => {
+  // ── Step 1: email + password login ───────────────────────────────────────
+  const handleLogin = async (e) => {
     e.preventDefault();
     if (!email || !/\S+@\S+\.\S+/.test(email)) {
       return setErrors({ email: 'Please enter a valid email address' });
     }
-    setIsLoading(true);
-    clearErrors();
-    const { exists, error } = await checkEmailExists(email);
-    setIsLoading(false);
-    if (error) return setErrors({ general: 'Something went wrong. Please try again.' });
-    if (exists) {
-      setStep('password');
-    } else {
-      // Unknown email → send to signup with email pre-filled
-      navigate(`/signup?email=${encodeURIComponent(email)}`);
-    }
-  };
-
-  // ── Step 2: password login ────────────────────────────────────────────────
-  const handlePasswordLogin = async (e) => {
-    e.preventDefault();
     if (!password) return setErrors({ password: 'Password is required' });
     setIsLoading(true);
     clearErrors();
     const { error } = await signIn(email, password);
     setIsLoading(false);
     if (error) {
-      setErrors({ general: 'Incorrect password. Try again or use "Forgot password".' });
+      setErrors({ general: 'Invalid email or password. Please try again.' });
     } else {
       navigate('/dashboard');
     }
@@ -63,6 +46,9 @@ const LoginForm = () => {
 
   // ── Forgot password: send OTP ─────────────────────────────────────────────
   const handleForgotPassword = async () => {
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      return setErrors({ email: 'Enter your email address above first' });
+    }
     setIsLoading(true);
     clearErrors();
     const { error } = await sendOtp(email);
@@ -75,7 +61,7 @@ const LoginForm = () => {
     }
   };
 
-  // ── Step 3: verify OTP ────────────────────────────────────────────────────
+  // ── Step 2: verify OTP ────────────────────────────────────────────────────
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     if (!otp || otp.length < 6) return setErrors({ otp: 'Enter the 6-digit code' });
@@ -91,7 +77,7 @@ const LoginForm = () => {
     }
   };
 
-  // ── Step 4: set new password ──────────────────────────────────────────────
+  // ── Step 3: set new password ──────────────────────────────────────────────
   const handleSetNewPassword = async (e) => {
     e.preventDefault();
     if (newPassword.length < 8) return setErrors({ newPassword: 'Minimum 8 characters' });
@@ -110,7 +96,7 @@ const LoginForm = () => {
     }
   };
 
-  // ── Shared error banner ───────────────────────────────────────────────────
+  // ── Shared banners ────────────────────────────────────────────────────────
   const ErrorBanner = ({ message }) => (
     <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
       <div className="flex items-center space-x-2">
@@ -129,15 +115,16 @@ const LoginForm = () => {
     </div>
   );
 
-  // ── Step 1: email ─────────────────────────────────────────────────────────
-  if (step === 'email') {
+  // ── Login screen ──────────────────────────────────────────────────────────
+  if (step === 'login') {
     return (
-      <form onSubmit={handleEmailContinue} className="space-y-6">
+      <form onSubmit={handleLogin} className="space-y-6">
         {errors.general && <ErrorBanner message={errors.general} />}
+
         <Input
           label="Email Address"
           type="email"
-          placeholder="Enter your email address"
+          placeholder="you@company.com"
           value={email}
           onChange={(e) => { setEmail(e.target.value); clearErrors(); }}
           error={errors.email}
@@ -145,57 +132,53 @@ const LoginForm = () => {
           disabled={isLoading}
           autoFocus
         />
-        <Button type="submit" variant="default" size="lg" fullWidth loading={isLoading} disabled={isLoading}
-          className="bg-gradient-to-r from-primary to-secondary">
-          {isLoading ? 'Checking...' : 'Continue'}
-        </Button>
-      </form>
-    );
-  }
 
-  // ── Step 2: password ──────────────────────────────────────────────────────
-  if (step === 'password') {
-    return (
-      <form onSubmit={handlePasswordLogin} className="space-y-6">
-        {errors.general && <ErrorBanner message={errors.general} />}
-
-        {/* Show email with edit option */}
-        <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-          <span className="text-sm text-foreground">{email}</span>
-          <button type="button" onClick={() => { setStep('email'); clearErrors(); setPassword(''); }}
-            className="text-xs text-primary hover:underline">
-            Change
-          </button>
+        <div className="space-y-1">
+          <Input
+            label="Password"
+            type="password"
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => { setPasswordInput(e.target.value); clearErrors(); }}
+            error={errors.password}
+            required
+            disabled={isLoading}
+          />
+          <div className="text-right">
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              disabled={isLoading}
+              className="text-xs text-primary hover:underline"
+            >
+              Forgot password?
+            </button>
+          </div>
         </div>
 
-        <Input
-          label="Password"
-          type="password"
-          placeholder="Enter your password"
-          value={password}
-          onChange={(e) => { setPassword(e.target.value); clearErrors(); }}
-          error={errors.password}
-          required
+        <Button
+          type="submit"
+          variant="default"
+          size="lg"
+          fullWidth
+          loading={isLoading}
           disabled={isLoading}
-          autoFocus
-        />
-
-        <Button type="submit" variant="default" size="lg" fullWidth loading={isLoading} disabled={isLoading}
-          className="bg-gradient-to-r from-primary to-secondary">
+          className="bg-gradient-to-r from-primary to-secondary"
+        >
           {isLoading ? 'Signing In...' : 'Sign In'}
         </Button>
 
-        <div className="text-center">
-          <button type="button" onClick={handleForgotPassword} disabled={isLoading}
-            className="text-sm text-primary hover:underline">
-            Forgot password? Sign in with OTP
-          </button>
-        </div>
+        <p className="text-center text-sm text-muted-foreground">
+          Don't have an account?{' '}
+          <Link to="/signup" className="text-primary hover:underline font-medium">
+            Create account
+          </Link>
+        </p>
       </form>
     );
   }
 
-  // ── Step 3: forgot password OTP ───────────────────────────────────────────
+  // ── Forgot password OTP ───────────────────────────────────────────────────
   if (step === 'forgot-otp') {
     return (
       <form onSubmit={handleVerifyOtp} className="space-y-6">
@@ -215,35 +198,44 @@ const LoginForm = () => {
           maxLength={6}
         />
 
-        <Button type="submit" variant="default" size="lg" fullWidth loading={isLoading} disabled={isLoading}
-          className="bg-gradient-to-r from-primary to-secondary">
+        <Button
+          type="submit"
+          variant="default"
+          size="lg"
+          fullWidth
+          loading={isLoading}
+          disabled={isLoading}
+          className="bg-gradient-to-r from-primary to-secondary"
+        >
           {isLoading ? 'Verifying...' : 'Verify Code'}
         </Button>
 
-        <div className="text-center">
-          <button type="button" onClick={handleForgotPassword} disabled={isLoading}
-            className="text-sm text-muted-foreground hover:text-primary">
+        <div className="text-center space-y-2">
+          <button
+            type="button"
+            onClick={handleForgotPassword}
+            disabled={isLoading}
+            className="block w-full text-sm text-muted-foreground hover:text-primary"
+          >
             Didn't receive it? Resend code
           </button>
-        </div>
-
-        <div className="text-center">
-          <button type="button" onClick={() => { setStep('password'); clearErrors(); setOtp(''); }}
-            className="text-sm text-muted-foreground hover:underline">
-            ← Back to password login
+          <button
+            type="button"
+            onClick={() => { setStep('login'); clearErrors(); setOtp(''); }}
+            className="text-sm text-muted-foreground hover:underline"
+          >
+            ← Back to sign in
           </button>
         </div>
       </form>
     );
   }
 
-  // ── Step 4: set new password ──────────────────────────────────────────────
+  // ── Set new password ──────────────────────────────────────────────────────
   if (step === 'new-password') {
     return (
       <form onSubmit={handleSetNewPassword} className="space-y-6">
-        <div className="text-center pb-2">
-          <p className="text-sm text-muted-foreground">OTP verified. Set your new password.</p>
-        </div>
+        <p className="text-sm text-center text-muted-foreground">OTP verified. Set your new password.</p>
         {errors.general && <ErrorBanner message={errors.general} />}
 
         <Input
@@ -268,8 +260,15 @@ const LoginForm = () => {
           disabled={isLoading}
         />
 
-        <Button type="submit" variant="default" size="lg" fullWidth loading={isLoading} disabled={isLoading}
-          className="bg-gradient-to-r from-primary to-secondary">
+        <Button
+          type="submit"
+          variant="default"
+          size="lg"
+          fullWidth
+          loading={isLoading}
+          disabled={isLoading}
+          className="bg-gradient-to-r from-primary to-secondary"
+        >
           {isLoading ? 'Saving...' : 'Set Password & Sign In'}
         </Button>
       </form>

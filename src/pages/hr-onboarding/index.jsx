@@ -6,12 +6,35 @@ import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
+
+const NCA_STATUS_LABELS = {
+  not_started: 'Not Started',
+  downloaded: 'Downloaded',
+  uploaded: 'Uploaded',
+  verified: 'Verified'
+};
+
+const NCA_STATUS_COLORS = {
+  not_started: 'bg-gray-100 text-gray-700',
+  downloaded: 'bg-yellow-100 text-yellow-700',
+  uploaded: 'bg-blue-100 text-blue-700',
+  verified: 'bg-green-100 text-green-700'
+};
 
 const HROnboarding = () => {
+  const { user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [onboardings, setOnboardings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Compliance state
+  const [complianceForms, setComplianceForms] = useState([]);
+  const [complianceCandidates, setComplianceCandidates] = useState([]);
+  const [complianceLoading, setComplianceLoading] = useState(false);
+  const [ncaLoading, setNcaLoading] = useState(false);
+  const [complianceActiveTab, setComplianceActiveTab] = useState('overview');
 
   // Modal states
   const [uploadModal, setUploadModal] = useState({ isOpen: false });
@@ -42,6 +65,13 @@ const HROnboarding = () => {
     fetchOnboardings();
   }, []);
 
+  useEffect(() => {
+    if (activeTab === 'compliance') {
+      fetchComplianceForms();
+      fetchComplianceCandidates();
+    }
+  }, [activeTab]);
+
   const fetchOnboardings = async () => {
     try {
       setLoading(true);
@@ -59,6 +89,47 @@ const HROnboarding = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchComplianceForms = async () => {
+    try {
+      setComplianceLoading(true);
+      const { data, error } = await supabase?.from('compliance_forms')?.select(`
+          *,
+          candidate:candidates(first_name, last_name, full_name, email),
+          verified_by_user:user_profiles!verified_by(full_name)
+        `)?.order('generated_date', { ascending: false });
+      if (error) throw error;
+      setComplianceForms(data || []);
+    } catch (err) {
+      console.error('Error fetching compliance forms:', err);
+    } finally {
+      setComplianceLoading(false);
+    }
+  };
+
+  const fetchComplianceCandidates = async () => {
+    try {
+      setNcaLoading(true);
+      const { data, error } = await supabase
+        ?.from('candidates')
+        ?.select('id, first_name, last_name, full_name, email, nca_status, nca_document_url, nca_uploaded_at, nca_verified_by, status, deal_type')
+        ?.order('created_at', { ascending: false });
+      if (error) throw error;
+      setComplianceCandidates(data || []);
+    } catch (err) {
+      console.error('Error fetching NCA data:', err);
+    } finally {
+      setNcaLoading(false);
+    }
+  };
+
+  const handleNcaStatusUpdate = async (candidateId, newStatus) => {
+    const updates = { nca_status: newStatus };
+    if (newStatus === 'verified') updates.nca_verified_by = user?.id;
+    if (newStatus === 'uploaded') updates.nca_uploaded_at = new Date().toISOString();
+    const { error } = await supabase.from('candidates').update(updates).eq('id', candidateId);
+    if (!error) fetchComplianceCandidates();
   };
 
   const completedTasks = onboardingTasks.filter(t => t.status === 'completed').length;
@@ -101,6 +172,231 @@ const HROnboarding = () => {
   const handleGenerateReport = () => {
     alert('Report generation initiated. The report will be downloaded shortly.');
   };
+
+  // Compliance helpers
+  const filteredForms = (type) => type ? complianceForms.filter(f => f.form_type === type) : complianceForms;
+  const getFormTypeColor = (type) => {
+    const colors = { i9: 'bg-blue-100 text-blue-700', w2: 'bg-green-100 text-green-700', everify: 'bg-purple-100 text-purple-700', onboarding: 'bg-orange-100 text-orange-700', nca: 'bg-indigo-100 text-indigo-700' };
+    return colors?.[type] || 'bg-gray-100 text-gray-700';
+  };
+  const ncaStats = {
+    total: complianceCandidates.length,
+    notStarted: complianceCandidates.filter(c => !c.nca_status || c.nca_status === 'not_started').length,
+    downloaded: complianceCandidates.filter(c => c.nca_status === 'downloaded').length,
+    uploaded: complianceCandidates.filter(c => c.nca_status === 'uploaded').length,
+    verified: complianceCandidates.filter(c => c.nca_status === 'verified').length,
+  };
+
+  const renderComplianceOverview = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        {[
+          { label: 'Total Forms', value: complianceForms.length, color: 'text-foreground' },
+          { label: 'I-9 Forms', value: filteredForms('i9').length, color: 'text-blue-600' },
+          { label: 'E-Verify', value: filteredForms('everify').length, color: 'text-purple-600' },
+          { label: 'NCA Verified', value: ncaStats.verified, color: 'text-green-600' },
+          { label: 'NCA Pending', value: ncaStats.notStarted + ncaStats.downloaded, color: 'text-amber-600' },
+          { label: 'Verified Forms', value: complianceForms.filter(f => f.is_verified).length, color: 'text-green-600' },
+        ].map(({ label, value, color }) => (
+          <div key={label} className="bg-card p-5 rounded-xl border border-border">
+            <p className="text-xs text-muted-foreground mb-1">{label}</p>
+            <p className={`text-2xl font-bold ${color}`}>{value}</p>
+          </div>
+        ))}
+      </div>
+      <div className="bg-card rounded-xl border border-border p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Icon name="Shield" size={20} className="text-primary" />
+          NCA Compliance Summary
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Not Started', value: ncaStats.notStarted, bg: 'bg-gray-50', color: 'text-gray-600' },
+            { label: 'Downloaded', value: ncaStats.downloaded, bg: 'bg-yellow-50', color: 'text-yellow-600' },
+            { label: 'Uploaded', value: ncaStats.uploaded, bg: 'bg-blue-50', color: 'text-blue-600' },
+            { label: 'Verified', value: ncaStats.verified, bg: 'bg-green-50', color: 'text-green-600' },
+          ].map(({ label, value, bg, color }) => (
+            <div key={label} className={`text-center p-4 ${bg} rounded-lg`}>
+              <p className={`text-3xl font-bold ${color}`}>{value}</p>
+              <p className="text-sm text-muted-foreground mt-1">{label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="bg-card rounded-xl border border-border p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Icon name="Clock" size={20} className="text-primary" />
+          Recent Compliance Activity
+        </h3>
+        <div className="space-y-3">
+          {complianceForms.slice(0, 5).map(form => (
+            <div key={form.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+              <div className="flex items-center gap-3">
+                <span className={`px-2 py-1 rounded text-xs font-medium ${getFormTypeColor(form.form_type)}`}>
+                  {form.form_type?.toUpperCase()}
+                </span>
+                <div>
+                  <p className="text-sm font-medium text-foreground">{form.candidate?.full_name || `${form.candidate?.first_name} ${form.candidate?.last_name}`}</p>
+                  <p className="text-xs text-muted-foreground">{form.candidate?.email}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                {form.is_verified ? (
+                  <span className="text-xs text-green-600 font-medium flex items-center gap-1"><Icon name="CheckCircle" size={14} /> Verified</span>
+                ) : (
+                  <span className="text-xs text-amber-600 font-medium flex items-center gap-1"><Icon name="Clock" size={14} /> Pending</span>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">{form.generated_date ? new Date(form.generated_date).toLocaleDateString() : ''}</p>
+              </div>
+            </div>
+          ))}
+          {complianceForms.length === 0 && !complianceLoading && (
+            <p className="text-sm text-muted-foreground text-center py-4">No compliance forms yet</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderComplianceFormsTable = (formType) => {
+    const data = formType ? filteredForms(formType) : complianceForms;
+    return (
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        {complianceLoading ? (
+          <div className="p-12 text-center"><div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" /><p className="text-muted-foreground">Loading forms...</p></div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-muted/50 border-b border-border">
+                <tr>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Candidate</th>
+                  {!formType && <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Form Type</th>}
+                  <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Generated Date</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Verified By</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Document</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {data.map(form => (
+                  <tr key={form.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-6 py-4">
+                      <p className="font-medium text-foreground">{form.candidate?.full_name || `${form.candidate?.first_name} ${form.candidate?.last_name}`}</p>
+                      <p className="text-sm text-muted-foreground">{form.candidate?.email}</p>
+                    </td>
+                    {!formType && (
+                      <td className="px-6 py-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getFormTypeColor(form.form_type)}`}>{form.form_type?.toUpperCase()}</span>
+                      </td>
+                    )}
+                    <td className="px-6 py-4 text-sm text-foreground">{form.generated_date ? new Date(form.generated_date).toLocaleDateString() : 'N/A'}</td>
+                    <td className="px-6 py-4 text-sm text-foreground">{form.verified_by_user?.full_name || 'N/A'}</td>
+                    <td className="px-6 py-4">
+                      {form.is_verified ? (
+                        <span className="flex items-center text-green-600 text-sm"><Icon name="CheckCircle" size={16} className="mr-1" />Verified</span>
+                      ) : (
+                        <span className="flex items-center text-amber-600 text-sm"><Icon name="Clock" size={16} className="mr-1" />Pending</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {form.document_url ? (
+                        <a href={form.document_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 flex items-center text-sm"><Icon name="Download" size={16} className="mr-1" />Download</a>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">N/A</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {data.length === 0 && (
+                  <tr><td colSpan={formType ? 5 : 6} className="px-6 py-12 text-center text-muted-foreground">No forms found</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderNcaTab = () => (
+    <div className="space-y-6">
+      <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-5">
+        <div className="flex items-start gap-3">
+          <Icon name="Info" size={20} className="text-indigo-600 mt-0.5 shrink-0" />
+          <div>
+            <h4 className="text-sm font-semibold text-indigo-800">NCA Compliance Workflow</h4>
+            <p className="text-sm text-indigo-700 mt-1">Every candidate must complete a Non-Compete Agreement before being marketed to vendors. Workflow: <strong>Download Template</strong> → <strong>Candidate Signs & Uploads</strong> → <strong>Admin Verifies</strong> → <strong>Cleared for Marketing</strong>.</p>
+          </div>
+        </div>
+      </div>
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        {ncaLoading ? (
+          <div className="p-12 text-center"><div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" /><p className="text-muted-foreground">Loading NCA data...</p></div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-muted/50 border-b border-border">
+                <tr>
+                  {['Candidate', 'Deal Type', 'Status', 'NCA Status', 'Uploaded', 'Marketing', 'Actions'].map(h => (
+                    <th key={h} className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {complianceCandidates.map(candidate => {
+                  const ncaStatus = candidate.nca_status || 'not_started';
+                  const isCleared = ncaStatus === 'uploaded' || ncaStatus === 'verified';
+                  return (
+                    <tr key={candidate.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-6 py-4">
+                        <p className="font-medium text-foreground">{candidate.full_name || `${candidate.first_name} ${candidate.last_name}`}</p>
+                        <p className="text-sm text-muted-foreground">{candidate.email}</p>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-foreground capitalize">{candidate.deal_type?.replace('_', ' ') || '-'}</td>
+                      <td className="px-6 py-4 text-sm text-foreground capitalize">{candidate.status?.replace('_', ' ') || '-'}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${NCA_STATUS_COLORS[ncaStatus]}`}>{NCA_STATUS_LABELS[ncaStatus]}</span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-muted-foreground">{candidate.nca_uploaded_at ? new Date(candidate.nca_uploaded_at).toLocaleDateString() : '-'}</td>
+                      <td className="px-6 py-4">
+                        {isCleared ? (
+                          <span className="text-xs text-green-600 font-medium flex items-center gap-1"><Icon name="CheckCircle" size={14} />Cleared</span>
+                        ) : (
+                          <span className="text-xs text-red-500 font-medium flex items-center gap-1"><Icon name="XCircle" size={14} />Blocked</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          {ncaStatus === 'not_started' && (
+                            <button onClick={() => handleNcaStatusUpdate(candidate.id, 'downloaded')} className="px-3 py-1.5 text-xs font-medium bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors flex items-center gap-1"><Icon name="Download" size={14} />Mark Downloaded</button>
+                          )}
+                          {ncaStatus === 'downloaded' && (
+                            <button onClick={() => handleNcaStatusUpdate(candidate.id, 'uploaded')} className="px-3 py-1.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-1"><Icon name="Upload" size={14} />Mark Uploaded</button>
+                          )}
+                          {ncaStatus === 'uploaded' && (
+                            <button onClick={() => handleNcaStatusUpdate(candidate.id, 'verified')} className="px-3 py-1.5 text-xs font-medium bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors flex items-center gap-1"><Icon name="CheckCircle" size={14} />Verify</button>
+                          )}
+                          {ncaStatus === 'verified' && (
+                            <span className="text-xs text-green-600 font-medium flex items-center gap-1"><Icon name="ShieldCheck" size={14} />Verified</span>
+                          )}
+                          {candidate.nca_document_url && (
+                            <a href={candidate.nca_document_url} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 text-xs font-medium bg-muted text-foreground rounded-lg hover:bg-muted/70 transition-colors flex items-center gap-1"><Icon name="ExternalLink" size={14} />View</a>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {complianceCandidates.length === 0 && (
+                  <tr><td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">No candidates found</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   const getAlertColor = (status) => {
     switch (status) {
@@ -189,33 +485,112 @@ const HROnboarding = () => {
                   />
                 </div>
               </div>
+
+              {/* Compliance shortcut card */}
+              <button
+                onClick={() => setActiveTab('compliance')}
+                className="bg-card p-6 rounded-xl border border-border hover:border-primary hover:shadow-md transition-all text-left group"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-muted-foreground">Compliance & Docs</p>
+                  <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                    <Icon name="Shield" size={20} className="text-indigo-600" />
+                  </div>
+                </div>
+                <p className="text-3xl font-bold text-foreground">NCA</p>
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1 group-hover:text-primary transition-colors">
+                  View compliance dashboard <Icon name="ArrowRight" size={12} />
+                </p>
+              </button>
             </div>
 
             {/* Tabs */}
             <div className="flex gap-2 mb-6 border-b border-border">
-              <button
-                onClick={() => setActiveTab('overview')}
-                className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 -mb-px ${
-                  activeTab === 'overview'
-                    ? 'text-primary border-primary'
-                    : 'text-muted-foreground border-transparent hover:text-foreground'
-                }`}
-              >
-                Overview
-              </button>
-              <button
-                onClick={() => setActiveTab('onboarding')}
-                className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 -mb-px ${
-                  activeTab === 'onboarding'
-                    ? 'text-primary border-primary'
-                    : 'text-muted-foreground border-transparent hover:text-foreground'
-                }`}
-              >
-                Onboarding Records
-              </button>
+              {[
+                { id: 'overview', label: 'Overview', icon: 'LayoutDashboard' },
+                { id: 'onboarding', label: 'Onboarding Records', icon: 'ClipboardList' },
+                { id: 'compliance', label: 'Compliance', icon: 'Shield' },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2 font-medium text-sm transition-colors border-b-2 -mb-px ${
+                    activeTab === tab.id
+                      ? 'text-primary border-primary'
+                      : 'text-muted-foreground border-transparent hover:text-foreground'
+                  }`}
+                >
+                  <Icon name={tab.icon} size={15} />
+                  {tab.label}
+                </button>
+              ))}
             </div>
 
-            {activeTab === 'overview' ? (
+            {activeTab === 'compliance' && (
+              <div className="space-y-6">
+                {/* Compliance sub-tabs */}
+                <div className="flex flex-wrap gap-2 border-b border-border pb-4">
+                  {[
+                    { id: 'overview', label: 'Overview', icon: 'LayoutDashboard' },
+                    { id: 'nca', label: 'NCA Compliance', icon: 'Shield' },
+                    { id: 'i9', label: 'I-9 Forms', icon: 'FileCheck' },
+                    { id: 'everify', label: 'E-Verify', icon: 'CheckSquare' },
+                    { id: 'all', label: 'All Forms', icon: 'Files' },
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setComplianceActiveTab(tab.id)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        complianceActiveTab === tab.id
+                          ? 'bg-primary text-white'
+                          : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <Icon name={tab.icon} size={15} />
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {complianceActiveTab === 'overview' && renderComplianceOverview()}
+                {complianceActiveTab === 'nca' && renderNcaTab()}
+                {complianceActiveTab === 'i9' && (
+                  <div className="space-y-6">
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
+                      <div className="flex items-start gap-3">
+                        <Icon name="FileCheck" size={20} className="text-blue-600 mt-0.5 shrink-0" />
+                        <div>
+                          <h4 className="text-sm font-semibold text-blue-800">I-9 Employment Eligibility Verification</h4>
+                          <p className="text-sm text-blue-700 mt-1">Form I-9 verifies identity and employment authorization. Employees complete Section 1 by day 1; employers complete Section 2 within 3 business days.</p>
+                          <a href="https://www.uscis.gov/sites/default/files/document/forms/i-9.pdf" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                            <Icon name="Download" size={16} />
+                            Download Official I-9 Form (USCIS)
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                    {renderComplianceFormsTable('i9')}
+                  </div>
+                )}
+                {complianceActiveTab === 'everify' && (
+                  <div className="space-y-6">
+                    <div className="bg-purple-50 border border-purple-200 rounded-xl p-5">
+                      <div className="flex items-start gap-3">
+                        <Icon name="CheckSquare" size={20} className="text-purple-600 mt-0.5 shrink-0" />
+                        <div>
+                          <h4 className="text-sm font-semibold text-purple-800">E-Verify Electronic Verification</h4>
+                          <p className="text-sm text-purple-700 mt-1">E-Verify compares I-9 information with DHS and SSA records. Cases must be created within 3 business days of hire.</p>
+                        </div>
+                      </div>
+                    </div>
+                    {renderComplianceFormsTable('everify')}
+                  </div>
+                )}
+                {complianceActiveTab === 'all' && renderComplianceFormsTable(null)}
+              </div>
+            )}
+
+            {activeTab !== 'compliance' && activeTab === 'overview' ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Onboarding Checklist */}
                 <div className="bg-card rounded-xl border border-border">
@@ -374,7 +749,7 @@ const HROnboarding = () => {
                   </div>
                 </div>
               </div>
-            ) : (
+            ) : activeTab === 'onboarding' ? (
               /* Onboarding Records Table */
               <div className="bg-card rounded-xl border border-border overflow-hidden">
                 {loading ? (
@@ -475,7 +850,7 @@ const HROnboarding = () => {
                   </div>
                 )}
               </div>
-            )}
+            ) : null}
           </motion.div>
         </div>
       </main>

@@ -513,6 +513,28 @@ const Header = ({ onMenuToggle, isSidebarOpen = false }) => {
                       ))}
                       <div className="border-t border-border my-1" />
                       <button
+                        onClick={() => {}}
+                        className="flex items-center w-full px-4 py-2 text-sm text-popover-foreground hover:bg-muted transition-smooth"
+                      >
+                        <Icon name="Book" size={16} className="mr-3" />
+                        Documentation
+                      </button>
+                      <button
+                        onClick={() => {}}
+                        className="flex items-center w-full px-4 py-2 text-sm text-popover-foreground hover:bg-muted transition-smooth"
+                      >
+                        <Icon name="HelpCircle" size={16} className="mr-3" />
+                        Contact Support
+                      </button>
+                      <button
+                        onClick={() => {}}
+                        className="flex items-center w-full px-4 py-2 text-sm text-popover-foreground hover:bg-muted transition-smooth"
+                      >
+                        <Icon name="MessageSquare" size={16} className="mr-3" />
+                        Share Feedback
+                      </button>
+                      <div className="border-t border-border my-1" />
+                      <button
                         onClick={handleLogout}
                         className="flex items-center w-full px-4 py-2 text-sm text-error hover:bg-error/10 transition-smooth"
                       >

@@ -58,7 +58,9 @@ const ProtectedRoute = ({ children, allowedRoles = [], module: explicitModule, s
   }
 
   // If profile loaded but not yet approved by admin, redirect to pending screen
-  if (!skipApprovalCheck && userProfile && !userProfile.is_approved) {
+  // Admins always bypass this check so they can never lock themselves out
+  const isAdmin = userProfile?.role === 'admin';
+  if (!skipApprovalCheck && !isAdmin && userProfile && !userProfile.is_approved) {
     return <Navigate to="/pending-approval" replace />;
   }
 

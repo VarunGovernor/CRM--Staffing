@@ -285,12 +285,6 @@ export const NAVIGATION_CONFIG = [
     module: 'invoices'
   },
   {
-    label: 'Compliance',
-    path: '/compliance',
-    icon: 'Shield',
-    module: 'compliance'
-  },
-  {
     label: 'Analytics',
     path: '/analytics',
     icon: 'BarChart3',

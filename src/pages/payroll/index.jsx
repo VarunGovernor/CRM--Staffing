@@ -100,42 +100,78 @@ const PayrollPage = () => {
     fetchW2Data();
   }, []);
 
+  const buildTimesheetRows = (logs, placements) => {
+    const formatTime = (t) => {
+      if (!t) return '--:--';
+      const [h, m] = t.split(':');
+      const hour = parseInt(h, 10);
+      const period = hour >= 12 ? 'PM' : 'AM';
+      const display = hour > 12 ? hour - 12 : hour || 12;
+      return `${String(display).padStart(2, '0')}:${m} ${period}`;
+    };
+    return logs.map(log => {
+      const p = placements.find(pl => pl.id === log.placement_id);
+      return {
+        id: log.id,
+        placement_id: log.placement_id,
+        employee: log.employee_name || (p ? `${p.candidate?.first_name || ''} ${p.candidate?.last_name || ''}`.trim() : ''),
+        date: log.log_date,
+        checkIn: formatTime(log.check_in),
+        checkOut: formatTime(log.check_out),
+        status: log.status,
+      };
+    });
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
+      const today = new Date().toISOString().split('T')[0];
+
       const { data: placements } = await supabase
-        ?.from('placements')
-        ?.select(`*, candidate:candidates(id, first_name, last_name, email)`)
-        ?.eq('status', 'active')
-        ?.order('created_at', { ascending: false });
+        .from('placements')
+        .select(`*, candidate:candidates(id, first_name, last_name, email)`)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
 
-      const payroll = (placements || []).map(p => ({
+      const activePlacements = placements || [];
+
+      // Build payroll rows from placements with persisted paid_amount + payroll_status
+      setPayrollData(activePlacements.map(p => ({
         id: p.id,
-        employee: `${p.candidate?.first_name} ${p.candidate?.last_name}`,
+        employee: `${p.candidate?.first_name || ''} ${p.candidate?.last_name || ''}`.trim(),
         role: p.job_title,
-        payRate: p.pay_rate,
+        payRate: p.pay_rate || 0,
         billableHours: 160,
-        totalPay: p.pay_rate * 160,
-        paidAmount: 0,
-        status: 'Pending'
-      }));
+        totalPay: (p.pay_rate || 0) * 160,
+        paidAmount: p.paid_amount || 0,
+        status: p.payroll_status || 'Pending',
+      })));
 
-      setPayrollData(payroll.length > 0 ? payroll : mockPayrollData);
+      // Fetch today's clock logs
+      const { data: clockLogs } = await supabase
+        .from('daily_clock_logs')
+        .select('*')
+        .eq('log_date', today);
 
-      const timesheets = (placements || []).map(p => ({
-        id: p.id,
-        employee: `${p.candidate?.first_name} ${p.candidate?.last_name}`,
-        date: new Date().toISOString().split('T')[0],
-        checkIn: getRandomTime(8, 10),
-        checkOut: getRandomTime(16, 18),
-        status: getRandomStatus()
-      }));
-
-      setTimesheetData(timesheets.length > 0 ? timesheets : mockTimesheetData);
+      // Ensure a clock log row exists for every active placement (upsert)
+      const existingIds = new Set((clockLogs || []).map(l => l.placement_id));
+      const missing = activePlacements.filter(p => !existingIds.has(p.id));
+      let allLogs = clockLogs || [];
+      if (missing.length > 0) {
+        const { data: inserted } = await supabase.from('daily_clock_logs').insert(
+          missing.map(p => ({
+            placement_id: p.id,
+            employee_name: `${p.candidate?.first_name || ''} ${p.candidate?.last_name || ''}`.trim(),
+            log_date: today,
+            status: 'Not Started',
+          }))
+        ).select();
+        allLogs = [...allLogs, ...(inserted || [])];
+      }
+      setTimesheetData(buildTimesheetRows(allLogs, activePlacements));
     } catch (error) {
       console.error('Error fetching data:', error);
-      setPayrollData(mockPayrollData);
-      setTimesheetData(mockTimesheetData);
     } finally {
       setLoading(false);
     }
@@ -299,33 +335,6 @@ const PayrollPage = () => {
     return c?.full_name || `${c?.first_name || ''} ${c?.last_name || ''}`.trim();
   };
 
-  const getRandomTime = (minHour, maxHour) => {
-    const hour = Math.floor(Math.random() * (maxHour - minHour + 1)) + minHour;
-    const minute = Math.random() > 0.5 ? '00' : '30';
-    const period = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour > 12 ? hour - 12 : hour;
-    return `${String(displayHour).padStart(2, '0')}:${minute} ${period}`;
-  };
-
-  const getRandomStatus = () => {
-    const statuses = ['Completed', 'Active', 'Not Started'];
-    return statuses[Math.floor(Math.random() * statuses.length)];
-  };
-
-  const mockPayrollData = [
-    { id: 1, employee: 'Sarah Miller', role: 'React Dev', payRate: 65, billableHours: 160, totalPay: 10400, paidAmount: 0, status: 'Pending' },
-    { id: 2, employee: 'John Doe', role: 'Backend Eng', payRate: 75, billableHours: 155, totalPay: 11625, paidAmount: 11625, status: 'Processed' },
-    { id: 3, employee: 'Emma Wilson', role: 'Designer', payRate: 55, billableHours: 140, totalPay: 7700, paidAmount: 3000, status: 'Partial' },
-    { id: 4, employee: 'Mike Ross', role: 'DevOps', payRate: 80, billableHours: 160, totalPay: 12800, paidAmount: 0, status: 'Pending' }
-  ];
-
-  const mockTimesheetData = [
-    { id: 1, employee: 'Sarah Miller', date: '2025-01-20', checkIn: '09:00 AM', checkOut: '05:00 PM', status: 'Completed' },
-    { id: 2, employee: 'John Doe', date: '2025-01-20', checkIn: '09:30 AM', checkOut: '--:--', status: 'Active' },
-    { id: 3, employee: 'Emma Wilson', date: '2025-01-20', checkIn: '08:45 AM', checkOut: '04:45 PM', status: 'Completed' },
-    { id: 4, employee: 'Mike Ross', date: '2025-01-20', checkIn: '--:--', checkOut: '--:--', status: 'Not Started' }
-  ];
-
   const getStatusColor = (status) => {
     const colors = {
       'Pending': 'bg-orange-100 text-orange-700',
@@ -350,7 +359,7 @@ const PayrollPage = () => {
     setCustomAmount('');
   };
 
-  const handleProcessPayment = () => {
+  const handleProcessPayment = async () => {
     const { employee } = paymentModal;
     if (!employee) return;
 
@@ -363,34 +372,47 @@ const PayrollPage = () => {
       return;
     }
 
-    const remainingAfterPayment = employee.totalPay - employee.paidAmount - amountToPay;
+    const newPaidAmount = employee.paidAmount + amountToPay;
+    const newStatus = newPaidAmount >= employee.totalPay ? 'Processed' : 'Partial';
 
-    setPayrollData(prev => prev.map(p => {
-      if (p.id === employee.id) {
-        const newPaidAmount = p.paidAmount + amountToPay;
-        const newStatus = newPaidAmount >= p.totalPay ? 'Processed' : 'Partial';
-        return { ...p, paidAmount: newPaidAmount, status: newStatus };
-      }
-      return p;
-    }));
-
+    try {
+      const { error } = await supabase
+        .from('placements')
+        .update({ paid_amount: newPaidAmount, payroll_status: newStatus })
+        .eq('id', employee.id);
+      if (error) throw error;
+      setPayrollData(prev => prev.map(p =>
+        p.id === employee.id ? { ...p, paidAmount: newPaidAmount, status: newStatus } : p
+      ));
+    } catch (err) {
+      console.error('Payment failed to save:', err);
+      alert('Payment recorded locally but failed to save. Please retry.');
+    }
     closePaymentModal();
   };
 
-  const handleClockIn = (id) => {
+  const handleClockIn = async (id) => {
     const now = new Date();
-    const time = `${String(now.getHours() > 12 ? now.getHours() - 12 : now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} ${now.getHours() >= 12 ? 'PM' : 'AM'}`;
-    setTimesheetData(prev => prev.map(t =>
-      t.id === id ? { ...t, checkIn: time, status: 'Active' } : t
-    ));
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
+    const displayTime = `${String(now.getHours() > 12 ? now.getHours() - 12 : now.getHours() || 12).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} ${now.getHours() >= 12 ? 'PM' : 'AM'}`;
+    try {
+      await supabase.from('daily_clock_logs').update({ check_in: timeStr, status: 'Active' }).eq('id', id);
+    } catch (err) {
+      console.error('Clock in failed:', err);
+    }
+    setTimesheetData(prev => prev.map(t => t.id === id ? { ...t, checkIn: displayTime, status: 'Active' } : t));
   };
 
-  const handleClockOut = (id) => {
+  const handleClockOut = async (id) => {
     const now = new Date();
-    const time = `${String(now.getHours() > 12 ? now.getHours() - 12 : now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} ${now.getHours() >= 12 ? 'PM' : 'AM'}`;
-    setTimesheetData(prev => prev.map(t =>
-      t.id === id ? { ...t, checkOut: time, status: 'Completed' } : t
-    ));
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
+    const displayTime = `${String(now.getHours() > 12 ? now.getHours() - 12 : now.getHours() || 12).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} ${now.getHours() >= 12 ? 'PM' : 'AM'}`;
+    try {
+      await supabase.from('daily_clock_logs').update({ check_out: timeStr, status: 'Completed' }).eq('id', id);
+    } catch (err) {
+      console.error('Clock out failed:', err);
+    }
+    setTimesheetData(prev => prev.map(t => t.id === id ? { ...t, checkOut: displayTime, status: 'Completed' } : t));
   };
 
   return (
