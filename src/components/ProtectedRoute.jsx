@@ -45,8 +45,11 @@ const ProtectedRoute = ({ children, allowedRoles = [], module: explicitModule, s
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Show loading while profile is being fetched (role check depends on it)
-  if (profileLoading) {
+  // Show loading while profile is being fetched for the FIRST time only.
+  // If we already have a profile (e.g. background token refresh), skip the
+  // full-page spinner — this prevents scroll reset and modal dismissal on
+  // tab switches where Supabase silently refreshes the auth token.
+  if (profileLoading && !userProfile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">

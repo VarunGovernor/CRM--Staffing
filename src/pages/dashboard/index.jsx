@@ -16,6 +16,9 @@ const Dashboard = () => {
   const { userProfile } = useAuth();
   const isAdmin = userProfile?.role === 'admin';
 
+  const handleMenuToggle = () => setIsSidebarOpen(prev => !prev);
+  const handleSidebarClose = () => setIsSidebarOpen(false);
+
   useEffect(() => {
     const handleEscape = (e) => { if (e?.key === 'Escape') setIsSidebarOpen(false); };
     document.addEventListener('keydown', handleEscape);

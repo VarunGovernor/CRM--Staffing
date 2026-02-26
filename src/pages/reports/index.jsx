@@ -167,7 +167,7 @@ const Reports = () => {
 
             {/* Additional Insights */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
               className="mt-8 bg-card border border-border rounded-xl p-6"

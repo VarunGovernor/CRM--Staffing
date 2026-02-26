@@ -29,10 +29,10 @@ class ClockService {
         .insert({
           'user_id': userId,
           'clock_in': DateTime.now().toUtc().toIso8601String(),
-          if (latitude != null) 'latitude': latitude,
-          if (longitude != null) 'longitude': longitude,
+          'latitude': ?latitude,
+          'longitude': ?longitude,
           'is_remote': isRemote,
-          if (distanceMeters != null) 'distance_meters': distanceMeters,
+          'distance_meters': ?distanceMeters,
         })
         .select()
         .single();

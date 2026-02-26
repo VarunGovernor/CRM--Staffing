@@ -39,7 +39,7 @@ class TaskService {
       'created_by': createdBy,
       if (description != null && description.isNotEmpty)
         'description': description,
-      if (assignedTo != null) 'assigned_to': assignedTo,
+      'assigned_to': ?assignedTo,
       'priority': priority,
       if (dueDate != null)
         'due_date': dueDate.toIso8601String().split('T').first,

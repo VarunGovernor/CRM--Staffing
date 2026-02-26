@@ -12,7 +12,7 @@ import Icon from '../../../components/AppIcon';
 
 const LoginForm = () => {
   const navigate = useNavigate();
-  const { signIn, sendOtp, verifyOtp, setPassword } = useAuth();
+  const { signIn, sendOtp, verifyOtp, setPassword: setNewPasswordApi } = useAuth();
 
   const [step, setStep] = useState('login');
   const [email, setEmail] = useState('');
@@ -87,7 +87,7 @@ const LoginForm = () => {
       return setErrors({ confirmNewPassword: 'Passwords do not match' });
     setIsLoading(true);
     clearErrors();
-    const { error } = await setPassword(newPassword);
+    const { error } = await setNewPasswordApi(newPassword);
     setIsLoading(false);
     if (error) {
       setErrors({ general: error.message || 'Failed to update password.' });

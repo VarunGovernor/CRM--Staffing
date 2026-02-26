@@ -401,7 +401,7 @@ const Vendors = () => {
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <main className="lg:ml-64 pt-16">
         <div className="p-4 lg:p-6">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          <motion.div initial={false} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
 
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">

@@ -8,6 +8,78 @@ import { candidates as candidatesApi } from '../../../lib/database';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 
+// ── Document upload box ───────────────────────────────────────────────────────
+const DocUploadBox = ({ label, fieldName, value, onChange, disabled }) => {
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const inputRef = useRef(null);
+
+  const isStoragePath = value && !value.startsWith('http');
+  const displayName = value ? value.split('/').pop() : '';
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { setUploadError('File must be under 10 MB'); return; }
+    setUploadError('');
+    setUploading(true);
+    const path = `candidate-docs/${Date.now()}_${fieldName}/${file.name}`;
+    const { error } = await supabase.storage.from('employee-files').upload(path, file, { upsert: true });
+    setUploading(false);
+    e.target.value = '';
+    if (error) { setUploadError('Upload failed. Please try again.'); }
+    else { onChange(fieldName, path); }
+  };
+
+  const handleView = async () => {
+    if (!value) return;
+    if (!isStoragePath) { window.open(value, '_blank'); return; }
+    const { data } = await supabase.storage.from('employee-files').createSignedUrl(value, 300);
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+  };
+
+  const handleRemove = async () => {
+    if (isStoragePath) await supabase.storage.from('employee-files').remove([value]);
+    onChange(fieldName, '');
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <label className="text-sm font-medium text-foreground">{label}</label>
+      {value ? (
+        <div className="flex items-center gap-2 p-3 border border-border rounded-lg bg-muted/30">
+          <Icon name="FileText" size={16} className="text-primary shrink-0" />
+          <span className="text-sm text-foreground truncate flex-1">{displayName || 'Document'}</span>
+          <button type="button" onClick={handleView} className="text-xs text-primary hover:underline shrink-0">View</button>
+          <button type="button" onClick={handleRemove} disabled={disabled || uploading}
+            className="text-muted-foreground hover:text-red-500 shrink-0 transition-colors">
+            <Icon name="X" size={14} />
+          </button>
+        </div>
+      ) : (
+        <div onClick={() => !disabled && !uploading && inputRef.current?.click()}
+          className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-border rounded-lg bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors">
+          {uploading ? (
+            <>
+              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm text-muted-foreground">Uploading…</span>
+            </>
+          ) : (
+            <>
+              <Icon name="Upload" size={20} className="text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Click to upload</span>
+              <span className="text-xs text-muted-foreground">PDF, JPG, PNG, DOC — max 10 MB</span>
+            </>
+          )}
+        </div>
+      )}
+      {uploadError && <p className="text-xs text-red-500">{uploadError}</p>}
+      <input ref={inputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+        onChange={handleFileSelect} className="hidden" disabled={disabled || uploading} />
+    </div>
+  );
+};
+
 const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
   const { user } = useAuth();
   const isEditing = !!candidate?.id;
@@ -52,9 +124,11 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
     fetchRecruiters();
   }, []);
 
+  const DRAFT_KEY = 'candidateFormDraft';
+
   useEffect(() => {
     if (candidate) {
-      // Support both legacy (first_name + last_name) and new (full_name)
+      // Editing existing candidate — always load from candidate data
       const name = candidate?.full_name
         || `${candidate?.first_name || ''} ${candidate?.last_name || ''}`.trim();
       setFormData({
@@ -81,10 +155,23 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
         nca_document_url: candidate?.nca_document_url || '',
         notes: candidate?.notes || ''
       });
-    } else {
-      resetForm();
+    } else if (isOpen) {
+      // New candidate — restore saved draft if it exists, otherwise reset
+      const saved = sessionStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        try { setFormData(JSON.parse(saved)); } catch { resetForm(); }
+      } else {
+        resetForm();
+      }
     }
   }, [candidate, isOpen]);
+
+  // Auto-save draft on every change (new candidates only)
+  useEffect(() => {
+    if (isOpen && !candidate) {
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(formData));
+    }
+  }, [formData]);
 
   const fetchRecruiters = async () => {
     const { data } = await supabase
@@ -121,6 +208,10 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
       notes: ''
     });
     setErrors({});
+  };
+
+  const handleDocChange = (fieldName, path) => {
+    setFormData(prev => ({ ...prev, [fieldName]: path }));
   };
 
   const handleInputChange = (e) => {
@@ -233,6 +324,7 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
       if (result?.error) {
         setErrors({ general: result?.error?.message || 'Failed to save candidate' });
       } else {
+        sessionStorage.removeItem(DRAFT_KEY);
         onSuccess?.(result?.data);
         onClose();
         resetForm();
@@ -244,9 +336,16 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
     }
   };
 
+  const handleCancel = () => {
+    sessionStorage.removeItem(DRAFT_KEY);
+    sessionStorage.removeItem('candidateFormOpen');
+    resetForm();
+    onClose();
+  };
+
   const footer = (
     <>
-      <Button variant="outline" onClick={onClose} disabled={isLoading}>
+      <Button variant="outline" onClick={handleCancel} disabled={isLoading}>
         Cancel
       </Button>
       <Button onClick={handleSubmit} loading={isLoading} disabled={isLoading}>
@@ -371,12 +470,11 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
                 <option value="no_work_auth">No Work Authorization</option>
               </Select>
             </div>
-            <Input
-              label="VISA Copy URL"
-              name="visa_copy_url"
+            <DocUploadBox
+              label="VISA Copy Document"
+              fieldName="visa_copy_url"
               value={formData?.visa_copy_url}
-              onChange={handleInputChange}
-              placeholder="Paste link to VISA document"
+              onChange={handleDocChange}
               disabled={isLoading}
             />
             <div className="space-y-1.5">
@@ -466,12 +564,11 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
                 disabled={isLoading}
               />
             </div>
-            <Input
-              label="NCA Signed Document URL"
-              name="nca_document_url"
+            <DocUploadBox
+              label="NCA Signed Document"
+              fieldName="nca_document_url"
               value={formData?.nca_document_url}
-              onChange={handleInputChange}
-              placeholder="Paste link to signed NCA document"
+              onChange={handleDocChange}
               disabled={isLoading}
             />
             <div className="flex items-center space-x-3 pt-6">

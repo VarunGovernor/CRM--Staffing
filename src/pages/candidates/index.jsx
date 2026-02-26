@@ -30,9 +30,22 @@ const Candidates = () => {
   const { user } = useAuth();
   const { candidates, loading, fetchCandidates } = useCandidates();
 
+  // Restore form open state if user navigated away mid-fill
   useEffect(() => {
     fetchRecruiters();
+    if (sessionStorage.getItem('candidateFormOpen') === 'true') {
+      setIsFormOpen(true);
+    }
   }, []);
+
+  // Persist form open state so it survives route changes
+  useEffect(() => {
+    if (isFormOpen && !editingCandidate) {
+      sessionStorage.setItem('candidateFormOpen', 'true');
+    } else {
+      sessionStorage.removeItem('candidateFormOpen');
+    }
+  }, [isFormOpen, editingCandidate]);
 
   const fetchRecruiters = async () => {
     try {
@@ -83,11 +96,13 @@ const Candidates = () => {
 
   const handleFormSuccess = () => {
     fetchCandidates();
+    sessionStorage.removeItem('candidateFormOpen');
   };
 
   const handleCloseForm = () => {
     setIsFormOpen(false);
     setEditingCandidate(null);
+    sessionStorage.removeItem('candidateFormOpen');
   };
 
   const getStatusColor = (status) => {
@@ -145,9 +160,9 @@ const Candidates = () => {
       <main className="lg:ml-64 pt-16">
         <div className="p-4 lg:p-6">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={candidates.length > 0 ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.3 }}
           >
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">

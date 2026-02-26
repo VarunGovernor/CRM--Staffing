@@ -41,7 +41,7 @@ class TravelService {
       'purpose': purpose,
       'departure_date': departureDate.toIso8601String().split('T').first,
       'return_date': returnDate.toIso8601String().split('T').first,
-      if (estimatedBudget != null) 'estimated_budget': estimatedBudget,
+      'estimated_budget': ?estimatedBudget,
       if (notes != null && notes.isNotEmpty) 'notes': notes,
     });
   }
