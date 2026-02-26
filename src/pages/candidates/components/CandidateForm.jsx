@@ -95,7 +95,7 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
     visa_status: 'us_citizen',
     visa_copy_url: '',
     status: 'in_market',
-    deal_type: '',
+    deal_type: [],
     payment_terms: '',
     skills: '',
     education: '',
@@ -142,7 +142,7 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
         visa_status: candidate?.visa_status || 'h1b',
         visa_copy_url: candidate?.visa_copy_url || '',
         status: candidate?.status || 'in_market',
-        deal_type: candidate?.deal_type || '',
+        deal_type: Array.isArray(candidate?.deal_type) ? candidate.deal_type : (candidate?.deal_type ? [candidate.deal_type] : []),
         payment_terms: candidate?.payment_terms || '',
         skills: candidate?.skills?.join(', ') || '',
         education: candidate?.education || '',
@@ -194,7 +194,7 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
       visa_status: 'us_citizen',
       visa_copy_url: '',
       status: 'in_market',
-      deal_type: '',
+      deal_type: [],
       payment_terms: '',
       skills: '',
       education: '',
@@ -251,12 +251,14 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
       newErrors.email = 'Invalid email format';
     }
     if (!formData?.phone?.trim()) newErrors.phone = 'Phone is required';
+    if (!formData?.alternate_phone?.trim()) newErrors.alternate_phone = 'Alternate contact number is required';
+    if (!formData?.emergency_contact?.trim()) newErrors.emergency_contact = 'Emergency contact number is required';
     if (!formData?.visa_status) newErrors.visa_status = 'Visa status is required';
 
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
-      const fieldOrder = ['full_name', 'email', 'phone', 'visa_status'];
+      const fieldOrder = ['full_name', 'email', 'phone', 'alternate_phone', 'emergency_contact', 'visa_status'];
       const firstErrorField = fieldOrder.find(f => newErrors[f]);
       if (firstErrorField) {
         setTimeout(() => {
@@ -294,7 +296,7 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
       visa_status: formData?.visa_status,
       visa_copy_url: formData?.visa_copy_url?.trim() || null,
       status: formData?.status,
-      deal_type: formData?.deal_type || null,
+      deal_type: formData?.deal_type?.length > 0 ? formData.deal_type : null,
       payment_terms: formData?.payment_terms?.trim() || null,
       skills: formData?.skills?.split(',')?.map(s => s?.trim())?.filter(Boolean) || [],
       education: formData?.education?.trim() || null,
@@ -407,7 +409,9 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
               name="alternate_phone"
               value={formData?.alternate_phone}
               onChange={handleInputChange}
+              error={errors?.alternate_phone}
               placeholder="Alternate phone number"
+              required
               disabled={isLoading}
             />
             <Input
@@ -415,7 +419,9 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
               name="emergency_contact"
               value={formData?.emergency_contact}
               onChange={handleInputChange}
+              error={errors?.emergency_contact}
               placeholder="Emergency contact number"
+              required
               disabled={isLoading}
             />
             <Input
@@ -532,17 +538,39 @@ const CandidateForm = ({ isOpen, onClose, candidate, onSuccess }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">Deal Type</label>
-              <Select
-                name="deal_type"
-                value={formData?.deal_type}
-                onChange={handleInputChange}
-                disabled={isLoading}
-              >
-                <option value="">Select Deal Type</option>
-                <option value="full_time">Full-time</option>
-                <option value="w2">W2</option>
-                <option value="c2c">Corp-to-Corp (C2C)</option>
-              </Select>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {[
+                  { value: 'full_time', label: 'Full-time' },
+                  { value: 'w2', label: 'W2' },
+                  { value: 'c2c', label: 'C2C' },
+                  { value: '1099', label: '1099' },
+                  { value: 'contract', label: 'Contract' },
+                ].map(opt => {
+                  const selected = formData?.deal_type?.includes(opt.value);
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      disabled={isLoading}
+                      onClick={() => {
+                        const current = formData?.deal_type || [];
+                        const next = selected
+                          ? current.filter(v => v !== opt.value)
+                          : [...current, opt.value];
+                        setFormData(prev => ({ ...prev, deal_type: next }));
+                        if (errors?.deal_type) setErrors(prev => ({ ...prev, deal_type: '' }));
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                        selected
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background text-foreground border-border hover:border-primary'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <Input
               label="Current Location"

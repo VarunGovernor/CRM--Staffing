@@ -5,6 +5,7 @@ import Sidebar from '../../components/ui/Sidebar';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
 import { useCandidates } from '../../contexts/CandidatesContext';
+import CandidateForm from '../candidates/components/CandidateForm';
 
 const PIPELINE_STAGES = [
   { id: 'applied', name: 'Applied', color: 'bg-blue-500' },
@@ -16,7 +17,8 @@ const PIPELINE_STAGES = [
 
 const CandidatePipeline = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { candidates: rawCandidates, loading, updateCandidate } = useCandidates();
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const { candidates: rawCandidates, loading, updateCandidate, fetchCandidates } = useCandidates();
 
   const candidates = useMemo(() => rawCandidates.map(c => ({
     ...c,
@@ -74,7 +76,7 @@ const CandidatePipeline = () => {
                 <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Pipeline</h1>
                 <p className="text-muted-foreground">Track candidates through the hiring process</p>
               </div>
-              <Button onClick={() => window.location.href = '/candidates'} className="flex items-center gap-2">
+              <Button onClick={() => setIsFormOpen(true)} className="flex items-center gap-2">
                 <Icon name="Plus" size={18} />
                 Add Candidate
               </Button>
@@ -167,6 +169,12 @@ const CandidatePipeline = () => {
           </motion.div>
         </div>
       </main>
+
+      <CandidateForm
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSuccess={() => { setIsFormOpen(false); fetchCandidates(); }}
+      />
     </div>
   );
 };
