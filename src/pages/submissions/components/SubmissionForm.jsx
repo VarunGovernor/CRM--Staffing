@@ -233,7 +233,7 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
 
   const fetchDropdownData = async () => {
     const [candidatesRes, vendorsRes, salespeopleRes, staffRes] = await Promise.all([
-      supabase?.from('candidates')?.select('id, first_name, last_name, full_name, email, nca_status')?.in('status', ['in_market', 'active'])?.order('first_name'),
+      supabase?.from('candidates')?.select('id, first_name, last_name, full_name, email, nca_status, status')?.order('first_name'),
       supabase?.from('vendors')?.select('id, name, tier')?.eq('is_active', true)?.order('name'),
       supabase?.from('user_profiles')?.select('id, full_name')?.in('role', ['sales', 'admin'])?.order('full_name'),
       supabase?.from('user_profiles')?.select('id, full_name, role')?.in('role', ['recruiter', 'sales', 'hr', 'finance', 'admin'])?.eq('is_active', true)?.order('full_name'),
@@ -409,11 +409,12 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
                 value={formData?.candidate_id}
                 onChange={handleInputChange}
                 disabled={isLoading}
+                searchable
               >
                 <option value="">Select Candidate</option>
                 {candidates?.map(c => (
                   <option key={c?.id} value={c?.id}>
-                    {getCandidateDisplayName(c)} ({c?.email})
+                    {getCandidateDisplayName(c)} ({c?.email}) · {c?.status?.replace('_', ' ')}
                   </option>
                 ))}
               </Select>
@@ -428,6 +429,7 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
                 value={formData?.vendor_id}
                 onChange={handleInputChange}
                 disabled={isLoading}
+                searchable
               >
                 <option value="">Select Vendor</option>
                 {vendors?.map(v => (
@@ -639,6 +641,7 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
                 value={formData?.submission_owner}
                 onChange={handleInputChange}
                 disabled={isLoading}
+                searchable
               >
                 <option value="">Select owner</option>
                 {staffMembers?.map(s => (
@@ -655,6 +658,7 @@ const SubmissionForm = ({ isOpen, onClose, submission, onSuccess }) => {
                 value={formData?.sales_person_id}
                 onChange={handleInputChange}
                 disabled={isLoading}
+                searchable
               >
                 <option value="">Select sales person</option>
                 {salespeople?.map(s => (

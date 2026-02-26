@@ -137,9 +137,9 @@ const Dashboard = () => {
           {/* Main Content */}
           <div className="flex-1 p-4 lg:p-6 xl:pr-0">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={kpis ? false : { opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
+              transition={{ duration: 0.3 }}
             >
               {/* Page Header */}
               <div className="mb-8">

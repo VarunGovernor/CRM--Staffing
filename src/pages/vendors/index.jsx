@@ -37,203 +37,112 @@ const emptyForm = {
   is_active: true
 };
 
-// Slide-in Vendor Detail Panel
-const VendorDrawer = ({ vendor, onClose, onEdit }) => {
-  const [submissions, setSubmissions] = useState([]);
-  const [loadingSubs, setLoadingSubs] = useState(true);
-
-  useEffect(() => {
-    if (!vendor) return;
-    const fetchRecent = async () => {
-      setLoadingSubs(true);
-      const { data } = await supabase
-        .from('submissions')
-        .select('id, job_title, status, submission_date, candidate:candidates(first_name, last_name, full_name)')
-        .eq('vendor_id', vendor.id)
-        .order('submission_date', { ascending: false })
-        .limit(5);
-      setSubmissions(data || []);
-      setLoadingSubs(false);
-    };
-    fetchRecent();
-  }, [vendor?.id]);
-
+// Compact 400×170 Vendor Detail Card
+const VendorMiniCard = ({ vendor, onClose, onEdit, pos }) => {
   if (!vendor) return null;
 
-  const statusColors = {
-    submitted: 'bg-blue-100 text-blue-700',
-    shortlisted: 'bg-yellow-100 text-yellow-700',
-    rejected: 'bg-red-100 text-red-700',
-    interview_scheduled: 'bg-purple-100 text-purple-700',
-    selected: 'bg-green-100 text-green-700'
-  };
+  const cardStyle = pos
+    ? { top: pos.top, left: pos.left }
+    : { bottom: 24, right: 24 };
 
   return (
-    <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
-      {/* Drawer */}
-      <motion.div
-        initial={{ x: '100%' }}
-        animate={{ x: 0 }}
-        exit={{ x: '100%' }}
-        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="fixed right-0 top-0 h-full w-full max-w-md bg-card border-l border-border shadow-2xl z-50 flex flex-col overflow-hidden"
-      >
-        {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-border">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h2 className="text-lg font-bold text-foreground truncate">{vendor.name}</h2>
-              {!vendor.is_active && (
-                <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">Inactive</span>
-              )}
-            </div>
-            <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${TIER_COLORS[vendor.tier] || 'bg-gray-100 text-gray-700'}`}>
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+      className="fixed w-[400px] h-[170px] bg-card border border-border rounded-xl shadow-2xl z-50 flex flex-col overflow-hidden"
+      style={cardStyle}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-2.5 px-4 pt-3 pb-2.5 border-b border-border">
+        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+          {vendor.name?.charAt(0)?.toUpperCase()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-sm text-foreground truncate">{vendor.name}</span>
+            <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium flex-shrink-0 ${TIER_COLORS[vendor.tier] || 'bg-gray-100 text-gray-700'}`}>
               {TIER_LABELS[vendor.tier] || vendor.tier}
             </span>
           </div>
-          <div className="flex items-center gap-2 ml-3">
-            <button
-              onClick={() => onEdit(vendor)}
-              className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors"
-              title="Edit vendor"
-            >
-              <Icon name="Pencil" size={16} />
-            </button>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Icon name="X" size={18} />
-            </button>
-          </div>
         </div>
-
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: 'Submissions', value: vendor.submission_count ?? '—', icon: 'Send', color: 'text-blue-600' },
-              { label: 'Placements', value: vendor.placement_count ?? '—', icon: 'Briefcase', color: 'text-green-600' },
-              { label: 'AI Score', value: vendor.ai_score != null ? `${vendor.ai_score}/100` : '—', icon: 'Zap', color: 'text-purple-600' },
-            ].map(stat => (
-              <div key={stat.label} className="bg-muted/50 rounded-xl p-3 text-center">
-                <Icon name={stat.icon} size={18} className={`${stat.color} mx-auto mb-1`} />
-                <p className="text-lg font-bold text-foreground">{stat.value}</p>
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Contact Info */}
-          <div>
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Contact Information</h3>
-            <div className="space-y-2.5">
-              {vendor.contact_person && (
-                <div className="flex items-center gap-3">
-                  <Icon name="User" size={15} className="text-muted-foreground flex-shrink-0" />
-                  <span className="text-sm text-foreground">{vendor.contact_person}</span>
-                </div>
-              )}
-              {vendor.contact_email && (
-                <div className="flex items-center gap-3">
-                  <Icon name="Mail" size={15} className="text-muted-foreground flex-shrink-0" />
-                  <a href={`mailto:${vendor.contact_email}`} className="text-sm text-primary hover:underline truncate">{vendor.contact_email}</a>
-                </div>
-              )}
-              {vendor.contact_phone && (
-                <div className="flex items-center gap-3">
-                  <Icon name="Phone" size={15} className="text-muted-foreground flex-shrink-0" />
-                  <a href={`tel:${vendor.contact_phone}`} className="text-sm text-foreground">{vendor.contact_phone}</a>
-                </div>
-              )}
-              {vendor.address && (
-                <div className="flex items-start gap-3">
-                  <Icon name="MapPin" size={15} className="text-muted-foreground flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-foreground">{vendor.address}</span>
-                </div>
-              )}
-              {vendor.website && (
-                <div className="flex items-center gap-3">
-                  <Icon name="Globe" size={15} className="text-muted-foreground flex-shrink-0" />
-                  <a href={vendor.website} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline truncate">{vendor.website}</a>
-                </div>
-              )}
-              {!vendor.contact_person && !vendor.contact_email && !vendor.contact_phone && !vendor.address && !vendor.website && (
-                <p className="text-sm text-muted-foreground italic">No contact details added</p>
-              )}
-            </div>
-          </div>
-
-          {/* Business Info */}
-          <div>
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Business Details</h3>
-            <div className="space-y-2.5">
-              {vendor.payment_terms && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Payment Terms</span>
-                  <span className="text-sm font-medium text-foreground">{vendor.payment_terms}</span>
-                </div>
-              )}
-              {vendor.avg_payment_days != null && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Avg Payment Days</span>
-                  <span className={`text-sm font-medium ${vendor.avg_payment_days > 45 ? 'text-red-600' : 'text-green-600'}`}>
-                    {vendor.avg_payment_days} days
-                  </span>
-                </div>
-              )}
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Status</span>
-                <span className={`text-sm font-medium ${vendor.is_active ? 'text-green-600' : 'text-muted-foreground'}`}>
-                  {vendor.is_active ? 'Active' : 'Inactive'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Added</span>
-                <span className="text-sm text-foreground">
-                  {new Date(vendor.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Recent Submissions */}
-          <div>
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Recent Submissions</h3>
-            {loadingSubs ? (
-              <div className="space-y-2">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="h-12 bg-muted rounded-lg animate-pulse" />
-                ))}
-              </div>
-            ) : submissions.length === 0 ? (
-              <p className="text-sm text-muted-foreground italic">No submissions yet</p>
-            ) : (
-              <div className="space-y-2">
-                {submissions.map(sub => (
-                  <div key={sub.id} className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{sub.job_title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {sub.candidate?.full_name || `${sub.candidate?.first_name} ${sub.candidate?.last_name}`}
-                        {' · '}
-                        {new Date(sub.submission_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </p>
-                    </div>
-                    <span className={`ml-2 flex-shrink-0 px-2 py-0.5 text-xs rounded-full font-medium ${statusColors[sub.status] || 'bg-gray-100 text-gray-700'}`}>
-                      {sub.status?.replace(/_/g, ' ')}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button onClick={() => onEdit(vendor)} className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors" title="Edit">
+            <Icon name="Pencil" size={13} />
+          </button>
+          <button onClick={onClose} className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors">
+            <Icon name="X" size={13} />
+          </button>
         </div>
-      </motion.div>
-    </>
+      </div>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-3 divide-x divide-border border-b border-border">
+        {[
+          { label: 'Submissions', value: vendor.submission_count ?? 0, color: 'text-blue-600' },
+          { label: 'Placements', value: vendor.placement_count ?? 0, color: 'text-green-600' },
+          { label: 'AI Score', value: vendor.ai_score != null ? `${vendor.ai_score}/100` : '—', color: 'text-purple-600' },
+        ].map(s => (
+          <div key={s.label} className="px-3 py-1.5 text-center">
+            <p className={`text-sm font-bold ${s.color}`}>{s.value}</p>
+            <p className="text-[10px] text-muted-foreground">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Contact info */}
+      <div className="flex-1 px-4 py-2 flex flex-col gap-1 overflow-hidden">
+        {/* Row 1: person + email + status */}
+        <div className="flex items-center gap-3 text-xs min-w-0">
+          <span className="flex items-center gap-1 text-foreground flex-shrink-0">
+            <Icon name="User" size={11} className="text-muted-foreground" />
+            {vendor.contact_person || <span className="text-muted-foreground">—</span>}
+          </span>
+          {vendor.contact_email
+            ? <a href={`mailto:${vendor.contact_email}`} className="flex items-center gap-1 text-primary hover:underline min-w-0"><Icon name="Mail" size={11} className="flex-shrink-0" /><span className="truncate">{vendor.contact_email}</span></a>
+            : <span className="flex items-center gap-1 text-muted-foreground"><Icon name="Mail" size={11} />—</span>
+          }
+          <span className={`ml-auto flex items-center gap-1 text-[11px] font-medium flex-shrink-0 ${vendor.is_active ? 'text-green-600' : 'text-gray-400'}`}>
+            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${vendor.is_active ? 'bg-green-500' : 'bg-gray-400'}`} />
+            {vendor.is_active ? 'Active' : 'Inactive'}
+          </span>
+        </div>
+        {/* Row 2: phone + payment terms (always shown) */}
+        <div className="flex items-center gap-4 text-xs">
+          <span className="flex items-center gap-1 text-foreground">
+            <Icon name="Phone" size={11} className="text-muted-foreground flex-shrink-0" />
+            {vendor.contact_phone || <span className="text-muted-foreground">—</span>}
+          </span>
+          <span className="flex items-center gap-1 text-foreground">
+            <Icon name="CreditCard" size={11} className="text-muted-foreground flex-shrink-0" />
+            {vendor.payment_terms || <span className="text-muted-foreground">—</span>}
+          </span>
+          {vendor.created_at && (
+            <span className="flex items-center gap-1 text-muted-foreground ml-auto flex-shrink-0">
+              <Icon name="CalendarDays" size={11} className="flex-shrink-0" />
+              {new Date(vendor.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </span>
+          )}
+        </div>
+        {/* Row 3: address (always shown) + website */}
+        <div className="flex items-center gap-3 text-xs min-w-0">
+          <span className="flex items-center gap-1 text-muted-foreground min-w-0">
+            <Icon name="MapPin" size={11} className="flex-shrink-0" />
+            {vendor.address
+              ? <span className="truncate">{vendor.address}</span>
+              : <span>—</span>
+            }
+          </span>
+          {vendor.website && (
+            <a href={vendor.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline ml-auto flex-shrink-0">
+              <Icon name="Globe" size={11} className="flex-shrink-0" />
+              <span className="truncate max-w-[120px]">{vendor.website.replace(/^https?:\/\//, '')}</span>
+            </a>
+          )}
+        </div>
+      </div>
+    </motion.div>
   );
 };
 
@@ -351,6 +260,7 @@ const Vendors = () => {
   const [tierFilter, setTierFilter] = useState('');
   const [activeFilter, setActiveFilter] = useState('');
   const [selectedVendor, setSelectedVendor] = useState(null);
+  const [cardPos, setCardPos] = useState(null);
   const [formVendor, setFormVendor] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { userProfile } = useAuth();
@@ -506,7 +416,18 @@ const Vendors = () => {
                       {filteredVendors.map(vendor => (
                         <tr
                           key={vendor.id}
-                          onClick={() => setSelectedVendor(vendor)}
+                          onClick={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const cardH = 170, cardW = 400;
+                            // Prefer below row, flip above if near bottom
+                            let top = rect.bottom + 6;
+                            if (top + cardH > window.innerHeight - 8) top = rect.top - cardH - 6;
+                            // Center horizontally on click, clamped to viewport
+                            let left = e.clientX - cardW / 2;
+                            left = Math.max(8, Math.min(left, window.innerWidth - cardW - 8));
+                            setCardPos({ top, left });
+                            setSelectedVendor(vendor);
+                          }}
                           className={`hover:bg-muted/30 transition-colors cursor-pointer ${selectedVendor?.id === vendor.id ? 'bg-primary/5' : ''}`}
                         >
                           <td className="px-4 py-4">
@@ -573,13 +494,14 @@ const Vendors = () => {
         </div>
       </main>
 
-      {/* Vendor Detail Drawer */}
+      {/* Vendor Detail Mini Card */}
       <AnimatePresence>
         {selectedVendor && (
-          <VendorDrawer
+          <VendorMiniCard
             vendor={selectedVendor}
-            onClose={() => setSelectedVendor(null)}
+            onClose={() => { setSelectedVendor(null); setCardPos(null); }}
             onEdit={canEdit ? handleOpenEdit : () => {}}
+            pos={cardPos}
           />
         )}
       </AnimatePresence>

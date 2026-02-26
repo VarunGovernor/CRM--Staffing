@@ -59,7 +59,7 @@ const InterviewForm = ({ isOpen, onClose, interview, onSuccess }) => {
     const [submissionsRes, mentorsRes] = await Promise.all([
       supabase?.from('submissions')
         ?.select('id, job_title, candidate:candidates(id, first_name, last_name), vendor:vendors(name)')
-        ?.in('status', ['submitted', 'shortlisted', 'interview_scheduled'])
+        ?.in('status', ['submitted', 'shortlisted', 'interview_scheduled', 'selected'])
         ?.order('submission_date', { ascending: false }),
       supabase?.from('user_profiles')
         ?.select('id, full_name')
@@ -220,6 +220,7 @@ const InterviewForm = ({ isOpen, onClose, interview, onSuccess }) => {
               value={formData?.submission_id}
               onChange={handleInputChange}
               disabled={isLoading}
+              searchable
             >
               <option value="">Select Submission</option>
               {submissions?.map(s => (
@@ -341,6 +342,7 @@ const InterviewForm = ({ isOpen, onClose, interview, onSuccess }) => {
                 value={formData?.mentor_id}
                 onChange={handleInputChange}
                 disabled={isLoading}
+                searchable
               >
                 <option value="">Select Mentor</option>
                 {mentors?.map(m => (

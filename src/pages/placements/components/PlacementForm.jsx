@@ -76,7 +76,7 @@ const PlacementForm = ({ isOpen, onClose, placement, onSuccess }) => {
     const [candidatesRes, vendorsRes, submissionsRes] = await Promise.all([
       supabase?.from('candidates')?.select('id, first_name, last_name')?.order('first_name'),
       supabase?.from('vendors')?.select('id, name')?.eq('is_active', true)?.order('name'),
-      supabase?.from('submissions')?.select('id, job_title, candidate:candidates(first_name, last_name)')?.eq('status', 'selected')?.order('submission_date', { ascending: false })
+      supabase?.from('submissions')?.select('id, job_title, status, candidate:candidates(first_name, last_name)')?.in('status', ['shortlisted', 'interview_scheduled', 'selected'])?.order('submission_date', { ascending: false })
     ]);
 
     setCandidates(candidatesRes?.data || []);
@@ -250,6 +250,7 @@ const PlacementForm = ({ isOpen, onClose, placement, onSuccess }) => {
                 value={formData?.candidate_id}
                 onChange={handleInputChange}
                 disabled={isLoading}
+                searchable
               >
                 <option value="">Select Candidate</option>
                 {candidates?.map(c => (
@@ -269,6 +270,7 @@ const PlacementForm = ({ isOpen, onClose, placement, onSuccess }) => {
                 value={formData?.vendor_id}
                 onChange={handleInputChange}
                 disabled={isLoading}
+                searchable
               >
                 <option value="">Select Vendor</option>
                 {vendors?.map(v => (
@@ -286,11 +288,12 @@ const PlacementForm = ({ isOpen, onClose, placement, onSuccess }) => {
                 value={formData?.submission_id}
                 onChange={handleInputChange}
                 disabled={isLoading}
+                searchable
               >
                 <option value="">Select Submission</option>
                 {submissions?.map(s => (
                   <option key={s?.id} value={s?.id}>
-                    {s?.candidate?.first_name} {s?.candidate?.last_name} - {s?.job_title}
+                    {s?.candidate?.first_name} {s?.candidate?.last_name} - {s?.job_title} [{s?.status?.replace(/_/g, ' ')}]
                   </option>
                 ))}
               </Select>

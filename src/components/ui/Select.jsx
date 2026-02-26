@@ -1,5 +1,5 @@
 // components/ui/Select.jsx - Shadcn style Select
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { ChevronDown, Check, Search, X } from "lucide-react";
 import { cn } from "../../utils/cn";
 import Button from "./Button";
@@ -29,6 +29,28 @@ const Select = React.forwardRef(({
 }, ref) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
+    const containerRef = useRef(null);
+    const searchInputRef = useRef(null);
+
+    // Close on outside click
+    useEffect(() => {
+        const handleOutsideClick = (e) => {
+            if (containerRef.current && !containerRef.current.contains(e.target)) {
+                setIsOpen(false);
+                setSearchTerm("");
+                onOpenChange?.(false);
+            }
+        };
+        if (isOpen) document.addEventListener('mousedown', handleOutsideClick);
+        return () => document.removeEventListener('mousedown', handleOutsideClick);
+    }, [isOpen]);
+
+    // Auto-focus search input when dropdown opens
+    useEffect(() => {
+        if (isOpen && searchable && searchInputRef.current) {
+            setTimeout(() => searchInputRef.current?.focus(), 50);
+        }
+    }, [isOpen, searchable]);
 
     // Derive options from either the options prop or children <option> elements
     const options = React.useMemo(() => {
@@ -142,7 +164,7 @@ const Select = React.forwardRef(({
                     {required && <span className="text-destructive ml-1">*</span>}
                 </label>
             )}
-            <div className="relative">
+            <div className="relative" ref={containerRef}>
                 <button
                     ref={ref}
                     id={selectId}
@@ -209,7 +231,8 @@ const Select = React.forwardRef(({
                                 <div className="relative">
                                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                                     <Input
-                                        placeholder="Search options..."
+                                        ref={searchInputRef}
+                                        placeholder="Type to search..."
                                         value={searchTerm}
                                         onChange={handleSearchChange}
                                         className="pl-10 bg-input border-border"
