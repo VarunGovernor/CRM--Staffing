@@ -104,8 +104,8 @@ const Routes = () => {
         <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
         <Route path="/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
 
-        {/* Pending approval — protected (needs auth) but no approval check */}
-        <Route path="/pending-approval" element={<ProtectedRoute skipApprovalCheck><PendingApproval /></ProtectedRoute>} />
+        {/* Pending approval — approval-exempt path is handled inside ProtectedRoute */}
+        <Route path="/pending-approval" element={<ProtectedRoute><PendingApproval /></ProtectedRoute>} />
 
         {/* Admin Routes */}
         <Route path="/admin/activity" element={<ProtectedRoute><AdminActivity /></ProtectedRoute>} />

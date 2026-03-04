@@ -24,7 +24,11 @@ const PermissionContext = createContext({
 // Hook to access permission context
 export const usePermissions = () => useContext(PermissionContext);
 
-const ProtectedRoute = ({ children, allowedRoles = [], module: explicitModule, skipApprovalCheck = false }) => {
+// Routes an unapproved user may visit (e.g. the approval-pending page itself).
+// Hardcoded here — never pass via props, to prevent accidental bypass.
+const APPROVAL_EXEMPT_PATHS = ['/pending-approval'];
+
+const ProtectedRoute = ({ children, allowedRoles = [], module: explicitModule }) => {
   const { user, loading, userProfile, profileLoading } = useAuth();
   const location = useLocation();
 
@@ -60,10 +64,12 @@ const ProtectedRoute = ({ children, allowedRoles = [], module: explicitModule, s
     );
   }
 
-  // If profile loaded but not yet approved by admin, redirect to pending screen
-  // Admins always bypass this check so they can never lock themselves out
+  // If profile loaded but not yet approved by admin, redirect to pending screen.
+  // Admins always bypass so they can never lock themselves out.
+  // A small set of paths are exempt (e.g. /pending-approval itself).
   const isAdmin = userProfile?.role === 'admin';
-  if (!skipApprovalCheck && !isAdmin && userProfile && !userProfile.is_approved) {
+  const isApprovalExempt = APPROVAL_EXEMPT_PATHS.includes(location.pathname);
+  if (!isApprovalExempt && !isAdmin && userProfile && !userProfile.is_approved) {
     return <Navigate to="/pending-approval" replace />;
   }
 
