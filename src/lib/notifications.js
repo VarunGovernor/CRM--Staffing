@@ -168,6 +168,142 @@ export const notifyManagerOnClockOut = async (employee, managerId, clockData) =>
   return { success: true };
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CRM Business Event Triggers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Notify admins when a candidate is added */
+export const notifyOnCandidateAdded = async (candidateName, addedByName) => {
+  return notifyAdmins(
+    'candidate_added',
+    'New Candidate Added',
+    `${addedByName || 'A recruiter'} added candidate: ${candidateName}`,
+    { candidateName }
+  );
+};
+
+/** Notify admins when an interview is scheduled */
+export const notifyOnInterviewAdded = async (interview) => {
+  const msg = `Interview scheduled: ${interview?.candidate_name || 'Candidate'} — ${interview?.client_name || 'Client'} on ${interview?.interview_date}`;
+  return notifyAdmins('interview_added', 'Interview Scheduled', msg, { interviewId: interview?.id });
+};
+
+/** Notify admins when a placement is created */
+export const notifyOnPlacementAdded = async (placement) => {
+  const msg = `New placement: ${placement?.candidate_name || 'Candidate'} at ${placement?.client_name || 'Client'} (${(placement?.offer_type || '').toUpperCase()})`;
+  return notifyAdmins('placement_added', 'New Placement Created', msg, { placementId: placement?.id });
+};
+
+/** Notify admins when NCA is signed */
+export const notifyOnNcaSigned = async (candidateName, candidateId) => {
+  return notifyAdmins(
+    'nca_signed',
+    'NCA Signed',
+    `${candidateName} has signed their Non-Compete Agreement.`,
+    { candidateId }
+  );
+};
+
+/** Notify admins when BGC is completed */
+export const notifyOnBgcCompleted = async (candidateName, placementId) => {
+  return notifyAdmins(
+    'bgc_completed',
+    'Background Check Completed',
+    `Background check cleared for ${candidateName}.`,
+    { placementId }
+  );
+};
+
+/** Notify admins when a start date is added or updated */
+export const notifyOnStartDateUpdated = async (candidateName, startDate, placementId) => {
+  return notifyAdmins(
+    'start_date_updated',
+    'Start Date Updated',
+    `${candidateName}'s start date set to ${startDate}.`,
+    { placementId, startDate }
+  );
+};
+
+/** Notify admins when a timesheet is uploaded */
+export const notifyOnTimesheetUploaded = async (candidateName, period, candidateId) => {
+  return notifyAdmins(
+    'timesheet_uploaded',
+    'Timesheet Uploaded',
+    `${candidateName} uploaded a timesheet for ${period}.`,
+    { candidateId, period }
+  );
+};
+
+/** Notify admins when an invoice is generated / pending approval */
+export const notifyOnInvoiceGenerated = async (invoiceRef, amount, placementName) => {
+  return notifyAdmins(
+    'invoice_generated',
+    'Invoice Pending Approval',
+    `Invoice ${invoiceRef} for ${placementName} — $${(amount || 0).toLocaleString()} awaiting approval.`,
+    { invoiceRef, amount }
+  );
+};
+
+/**
+ * Send a performance alert to a recruiter and to all admins
+ */
+export const notifyRecruiterPerformanceAlert = async (recruiterId, recruiterName, metric, message) => {
+  const alertMsg = message || `Your ${metric} count is below the monthly target. Review your goals.`;
+  await createInAppNotification(
+    recruiterId,
+    'performance_alert',
+    'Performance Alert',
+    alertMsg,
+    { metric, recruiterName }
+  );
+  return notifyAdmins(
+    'performance_alert',
+    `Recruiter Alert — ${recruiterName}`,
+    message || `${recruiterName} has not met the monthly ${metric} target.`,
+    { recruiterId, recruiterName, metric }
+  );
+};
+
+/**
+ * Check all active recruiters for 0 placements in past 2 months and fire alerts.
+ * Call this from the admin dashboard on load.
+ */
+export const checkAndAlertRecruiterPerformance = async () => {
+  try {
+    const twoMonthsAgo = new Date();
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+    const cutoff = twoMonthsAgo.toISOString().split('T')[0];
+
+    const { data: recruiters, error } = await supabase
+      .from('user_profiles')
+      .select('id, full_name')
+      .eq('role', 'recruiter')
+      .eq('is_active', true);
+
+    if (error || !recruiters?.length) return;
+
+    for (const recruiter of recruiters) {
+      const { count } = await supabase
+        .from('placements')
+        .select('id', { count: 'exact', head: true })
+        .gte('start_date', cutoff);
+
+      if ((count || 0) === 0) {
+        await notifyRecruiterPerformanceAlert(
+          recruiter.id,
+          recruiter.full_name,
+          'placements',
+          `${recruiter.full_name} has had 0 placements in the past 2 months.`
+        );
+      }
+    }
+  } catch (err) {
+    console.error('Performance check error:', err);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * Get user's manager info
  */

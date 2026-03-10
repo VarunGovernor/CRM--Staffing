@@ -174,14 +174,21 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = async (updates) => {
     if (!user) return { error: { message: 'No user logged in' } }
-    
+
     try {
       const { data, error } = await supabase?.from('user_profiles')?.update(updates)?.eq('id', user?.id)?.select()?.single()
-      if (!error) setUserProfile(data)
+      if (!error) {
+        // If DB returned updated row, use it; otherwise merge updates into current state
+        setUserProfile(prev => data || (prev ? { ...prev, ...updates } : prev))
+      }
       return { data, error }
     } catch (error) {
       return { error: { message: 'Network error. Please try again.' } }
     }
+  }
+
+  const refreshProfile = async () => {
+    if (user?.id) await profileOperations.load(user.id)
   }
 
   const checkEmailExists = async (email) => {
@@ -255,6 +262,7 @@ export const AuthProvider = ({ children }) => {
     getSession,
     refreshSession,
     updateProfile,
+    refreshProfile,
     checkEmailExists,
     sendOtp,
     sendOtpNewUser,

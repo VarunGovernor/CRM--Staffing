@@ -2,31 +2,69 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from '../../components/ui/Header';
 import Sidebar from '../../components/ui/Sidebar';
-import Button from '../../components/ui/Button';
-import { Checkbox } from '../../components/ui/Checkbox';
 import Icon from '../../components/AppIcon';
-import ActivityTimeline from './components/ActivityTimeline';
-import ActivityFilters from './components/ActivityFilters';
-import QuickAddActivity from './components/QuickAddActivity';
-import BulkActions from './components/BulkActions';
-import ActivityStats from './components/ActivityStats';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
-// ────────────────────────────────────────────────────────────────
-// Edit / Reschedule modal
-// ────────────────────────────────────────────────────────────────
-const EditActivityModal = ({ activity, onClose, onSave }) => {
-  const [form, setForm] = useState({
-    type: activity?.type || 'task',
-    title: activity?.title || '',
-    description: activity?.description || '',
-    due_date: activity?.dueDate ? new Date(activity.dueDate).toISOString().split('T')[0] : '',
-    due_time: activity?.dueDate ? new Date(activity.dueDate).toTimeString().slice(0, 5) : '',
-    priority: activity?.priority || 'medium',
-    owner: activity?.owner || '',
-    contact: activity?.contact || '',
-    account: activity?.account || '',
-    notes: activity?.notes || '',
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const ACTIVITY_TYPES = [
+  { value: 'call',      label: 'Call',         icon: 'Phone',        color: 'bg-blue-100 text-blue-700' },
+  { value: 'email',     label: 'Email',        icon: 'Mail',         color: 'bg-purple-100 text-purple-700' },
+  { value: 'meeting',   label: 'Meeting',      icon: 'Users',        color: 'bg-green-100 text-green-700' },
+  { value: 'follow_up', label: 'Follow-up',    icon: 'ArrowRightCircle', color: 'bg-yellow-100 text-yellow-700' },
+  { value: 'task',      label: 'Task',         icon: 'CheckSquare',  color: 'bg-gray-100 text-gray-700' },
+  { value: 'note',      label: 'Note',         icon: 'FileText',     color: 'bg-orange-100 text-orange-700' },
+];
+
+const PRIORITIES = [
+  { value: 'low',    label: 'Low',    color: 'text-gray-500' },
+  { value: 'medium', label: 'Medium', color: 'text-yellow-600' },
+  { value: 'high',   label: 'High',   color: 'text-red-600' },
+];
+
+const getTypeConfig = (type) => ACTIVITY_TYPES.find(t => t.value === type) || ACTIVITY_TYPES[4];
+
+const getPriorityColor = (priority) => ({
+  low:    'bg-gray-100 text-gray-600',
+  medium: 'bg-yellow-100 text-yellow-700',
+  high:   'bg-red-100 text-red-700',
+}[priority] || 'bg-gray-100 text-gray-600');
+
+const emptyForm = {
+  type: 'call',
+  title: '',
+  description: '',
+  activity_date: new Date().toISOString().split('T')[0],
+  due_date: '',
+  due_time: '',
+  hours_logged: '',
+  priority: 'medium',
+  assigned_to: '',
+  reminder_at: '',
+  notes: '',
+};
+
+// ─── Activity Form Modal ─────────────────────────────────────────────────────
+
+const ActivityFormModal = ({ activity, users, currentUserId, isAdmin, onClose, onSave }) => {
+  const [form, setForm] = useState(() => {
+    if (activity) {
+      return {
+        type: activity.type || 'call',
+        title: activity.title || '',
+        description: activity.description || '',
+        activity_date: activity.activity_date || new Date().toISOString().split('T')[0],
+        due_date: activity.due_date ? activity.due_date.split('T')[0] : '',
+        due_time: activity.due_date ? activity.due_date.slice(11, 16) : '',
+        hours_logged: activity.hours_logged || '',
+        priority: activity.priority || 'medium',
+        assigned_to: activity.assigned_to || '',
+        reminder_at: activity.reminder_at ? activity.reminder_at.slice(0, 16) : '',
+        notes: activity.notes || '',
+      };
+    }
+    return { ...emptyForm, assigned_to: currentUserId || '' };
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -35,24 +73,34 @@ const EditActivityModal = ({ activity, onClose, onSave }) => {
     if (!form.title.trim()) { setError('Title is required.'); return; }
     setSaving(true);
     setError('');
+
     const due_date = form.due_date
       ? new Date(`${form.due_date}T${form.due_time || '00:00'}`).toISOString()
       : null;
+
     const payload = {
       type: form.type,
       title: form.title.trim(),
       description: form.description || null,
+      activity_date: form.activity_date || null,
       due_date,
+      hours_logged: form.hours_logged !== '' ? parseFloat(form.hours_logged) : null,
       priority: form.priority,
-      owner: form.owner || null,
-      contact: form.contact || null,
-      account: form.account || null,
+      assigned_to: form.assigned_to || null,
+      reminder_at: form.reminder_at ? new Date(form.reminder_at).toISOString() : null,
       notes: form.notes || null,
     };
+
     try {
-      const { error: err } = await supabase.from('crm_activities').update(payload).eq('id', activity.id);
-      if (err) throw err;
-      onSave({ ...activity, ...payload, dueDate: due_date });
+      if (activity) {
+        const { error: err } = await supabase.from('crm_activities').update(payload).eq('id', activity.id);
+        if (err) throw err;
+        onSave({ ...activity, ...payload, due_date });
+      } else {
+        const { data, error: err } = await supabase.from('crm_activities').insert([{ ...payload, completed: false }]).select().single();
+        if (err) throw err;
+        onSave(data);
+      }
       onClose();
     } catch (e) {
       setError(e.message || 'Failed to save.');
@@ -61,77 +109,85 @@ const EditActivityModal = ({ activity, onClose, onSave }) => {
     }
   };
 
-  const typeOptions = ['task', 'call', 'meeting', 'email', 'note'];
-  const priorityOptions = ['low', 'medium', 'high'];
+  const F = ({ label, children }) => (
+    <div>
+      <label className="block text-sm font-medium text-foreground mb-1">{label}</label>
+      {children}
+    </div>
+  );
+
+  const inputCls = "w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary";
 
   return (
     <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <motion.div className="relative bg-card border border-border rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} transition={{ duration: 0.2 }}>
+      <motion.div className="relative bg-card border border-border rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto" initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} transition={{ duration: 0.2 }}>
         <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-lg font-semibold text-card-foreground">Edit Activity</h2>
-          <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg transition-colors">
-            <Icon name="X" size={18} className="text-muted-foreground" />
-          </button>
+          <h2 className="text-lg font-semibold text-card-foreground">{activity ? 'Edit Activity' : 'Add Activity'}</h2>
+          <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg transition-colors"><Icon name="X" size={18} className="text-muted-foreground" /></button>
         </div>
         <div className="p-6 space-y-4">
           {error && <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"><Icon name="AlertCircle" size={15} />{error}</div>}
+
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Type</label>
-              <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
-                {typeOptions.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+            <F label="Type">
+              <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))} className={inputCls}>
+                {ACTIVITY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Priority</label>
-              <select value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
-                {priorityOptions.map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+            </F>
+            <F label="Priority">
+              <select value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value }))} className={inputCls}>
+                {PRIORITIES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
               </select>
-            </div>
+            </F>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Title *</label>
-            <input type="text" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Description</label>
-            <textarea rows={2} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none" />
-          </div>
+
+          <F label="Title *">
+            <input type="text" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} className={inputCls} placeholder="Activity title..." />
+          </F>
+
+          <F label="Description">
+            <textarea rows={2} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className={`${inputCls} resize-none`} placeholder="Optional details..." />
+          </F>
+
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Due Date</label>
-              <input type="date" value={form.due_date} onChange={e => setForm(p => ({ ...p, due_date: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Due Time</label>
-              <input type="time" value={form.due_time} onChange={e => setForm(p => ({ ...p, due_time: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
-            </div>
+            <F label="Activity Date">
+              <input type="date" value={form.activity_date} onChange={e => setForm(p => ({ ...p, activity_date: e.target.value }))} className={inputCls} />
+            </F>
+            <F label="Hours Logged">
+              <input type="number" step="0.25" min="0" value={form.hours_logged} onChange={e => setForm(p => ({ ...p, hours_logged: e.target.value }))} className={inputCls} placeholder="0.0" />
+            </F>
           </div>
+
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Assigned To</label>
-              <input type="text" value={form.owner} onChange={e => setForm(p => ({ ...p, owner: e.target.value }))} placeholder="Name" className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Contact</label>
-              <input type="text" value={form.contact} onChange={e => setForm(p => ({ ...p, contact: e.target.value }))} placeholder="Contact name" className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
-            </div>
+            <F label="Due Date">
+              <input type="date" value={form.due_date} onChange={e => setForm(p => ({ ...p, due_date: e.target.value }))} className={inputCls} />
+            </F>
+            <F label="Due Time">
+              <input type="time" value={form.due_time} onChange={e => setForm(p => ({ ...p, due_time: e.target.value }))} className={inputCls} />
+            </F>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Account</label>
-            <input type="text" value={form.account} onChange={e => setForm(p => ({ ...p, account: e.target.value }))} placeholder="Account name" className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Notes</label>
-            <textarea rows={2} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none" />
-          </div>
+
+          <F label="Assign To">
+            <select value={form.assigned_to} onChange={e => setForm(p => ({ ...p, assigned_to: e.target.value }))} className={inputCls}>
+              <option value="">Unassigned</option>
+              {users.map(u => <option key={u.id} value={u.id}>{u.full_name} ({u.role})</option>)}
+            </select>
+          </F>
+
+          <F label="Reminder">
+            <input type="datetime-local" value={form.reminder_at} onChange={e => setForm(p => ({ ...p, reminder_at: e.target.value }))} className={inputCls} />
+          </F>
+
+          <F label="Notes">
+            <textarea rows={2} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} className={`${inputCls} resize-none`} placeholder="Internal notes..." />
+          </F>
         </div>
         <div className="flex items-center justify-end gap-3 p-6 border-t border-border">
           <button onClick={onClose} className="px-4 py-2 border border-border rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors">Cancel</button>
           <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-60">
             {saving ? <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" /> : <Icon name="Save" size={15} />}
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saving ? 'Saving...' : (activity ? 'Save Changes' : 'Add Activity')}
           </button>
         </div>
       </motion.div>
@@ -139,52 +195,166 @@ const EditActivityModal = ({ activity, onClose, onSave }) => {
   );
 };
 
-// ────────────────────────────────────────────────────────────────
-// Main Activities page
-// ────────────────────────────────────────────────────────────────
+// ─── Activity Card ────────────────────────────────────────────────────────────
+
+const ActivityCard = ({ activity, users, onEdit, onComplete, onDelete, isDeleting, onConfirmDelete, onCancelDelete }) => {
+  const typeConfig = getTypeConfig(activity.type);
+  const assignedUser = users.find(u => u.id === activity.assigned_to);
+  const isOverdue = activity.due_date && !activity.completed && new Date(activity.due_date) < new Date();
+  const hasReminder = activity.reminder_at && new Date(activity.reminder_at) > new Date(Date.now() - 3600000);
+
+  return (
+    <div className={`bg-card border rounded-xl p-4 transition-all ${activity.completed ? 'opacity-60 border-border' : isOverdue ? 'border-red-300 bg-red-50/30' : 'border-border hover:border-primary/30'}`}>
+      <div className="flex items-start gap-3">
+        {/* Type icon */}
+        <div className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${typeConfig.color}`}>
+          <Icon name={typeConfig.icon} size={16} />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className={`font-medium text-sm ${activity.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                  {activity.title}
+                </p>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(activity.priority)}`}>
+                  {activity.priority}
+                </span>
+                {activity.completed && (
+                  <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">Done</span>
+                )}
+                {isOverdue && !activity.completed && (
+                  <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-medium">Overdue</span>
+                )}
+              </div>
+
+              {activity.description && (
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{activity.description}</p>
+              )}
+
+              <div className="flex items-center gap-4 mt-2 flex-wrap">
+                {activity.activity_date && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Icon name="Calendar" size={11} />
+                    {new Date(activity.activity_date).toLocaleDateString()}
+                  </span>
+                )}
+                {activity.due_date && (
+                  <span className={`text-xs flex items-center gap-1 ${isOverdue ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+                    <Icon name="Clock" size={11} />
+                    Due: {new Date(activity.due_date).toLocaleDateString()}
+                  </span>
+                )}
+                {activity.hours_logged != null && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Icon name="Timer" size={11} />
+                    {activity.hours_logged}h logged
+                  </span>
+                )}
+                {assignedUser && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Icon name="User" size={11} />
+                    {assignedUser.full_name}
+                  </span>
+                )}
+                {activity.reminder_at && (
+                  <span className="text-xs text-blue-600 flex items-center gap-1">
+                    <Icon name="Bell" size={11} />
+                    Reminder: {new Date(activity.reminder_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                )}
+              </div>
+
+              {activity.notes && (
+                <p className="text-xs text-muted-foreground italic mt-1 border-l-2 border-muted pl-2">{activity.notes}</p>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {!activity.completed && (
+                <button onClick={() => onComplete(activity.id)} className="p-1.5 rounded-lg hover:bg-green-50 text-muted-foreground hover:text-green-600 transition-colors" title="Mark complete">
+                  <Icon name="CheckCircle" size={15} />
+                </button>
+              )}
+              <button onClick={() => onEdit(activity)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Edit">
+                <Icon name="Pencil" size={14} />
+              </button>
+              {isDeleting ? (
+                <div className="flex items-center gap-1">
+                  <button onClick={() => onConfirmDelete(activity.id)} className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700">Yes</button>
+                  <button onClick={onCancelDelete} className="px-2 py-1 bg-muted text-foreground rounded text-xs">No</button>
+                </div>
+              ) : (
+                <button onClick={() => onDelete(activity.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors" title="Delete">
+                  <Icon name="Trash2" size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Activities Page ─────────────────────────────────────────────────────
+
 const Activities = () => {
+  const { user, userProfile } = useAuth();
+  const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'manager';
+  const isRecruiter = userProfile?.role === 'recruiter';
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
-  const [selectedActivities, setSelectedActivities] = useState([]);
   const [activities, setActivities] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [editingActivity, setEditingActivity] = useState(null);
+
+  // Modal
+  const [modalActivity, setModalActivity] = useState(undefined); // undefined=closed, null=new, obj=edit
   const [deletingId, setDeletingId] = useState(null);
 
+  // Filters
   const [filters, setFilters] = useState({
     search: '',
-    type: 'all',
-    status: 'all',
-    owner: 'all',
-    priority: 'all',
+    type: '',
+    status: '',
+    assignedTo: '',
+    priority: '',
     dateFrom: '',
-    dateTo: ''
+    dateTo: '',
   });
 
-  // ── DB helpers ──────────────────────────────────────────────
-  const dbToActivity = (row) => ({
-    id: row.id,
-    type: row.type,
-    title: row.title,
-    description: row.description || '',
-    dueDate: row.due_date ? new Date(row.due_date) : new Date(),
-    priority: row.priority || 'medium',
-    owner: row.owner || '',
-    contact: row.contact || null,
-    account: row.account || null,
-    completed: row.completed || false,
-    notes: row.notes || '',
-  });
+  useEffect(() => {
+    fetchUsers();
+    fetchActivities();
+  }, [user, userProfile]);
+
+  const fetchUsers = async () => {
+    const { data } = await supabase
+      .from('user_profiles')
+      .select('id, full_name, role')
+      .in('role', ['admin', 'recruiter', 'manager', 'hr', 'accounts'])
+      .eq('is_active', true)
+      .order('full_name');
+    setUsers(data || []);
+  };
 
   const fetchActivities = async () => {
+    if (!user) return;
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('crm_activities')
-        .select('*')
-        .order('due_date', { ascending: true });
+      let query = supabase.from('crm_activities').select('*').order('activity_date', { ascending: false });
+
+      // Recruiters only see their own activities
+      if (isRecruiter && user?.id) {
+        query = query.eq('assigned_to', user.id);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
-      setActivities((data || []).map(dbToActivity));
+      setActivities(data || []);
     } catch (err) {
       console.error('Activities fetch error:', err);
     } finally {
@@ -192,278 +362,232 @@ const Activities = () => {
     }
   };
 
-  useEffect(() => { fetchActivities(); }, []);
-
-  // ── Filters ──────────────────────────────────────────────────
-  const filteredActivities = useMemo(() => {
-    return activities.filter(activity => {
-      if (filters.search) {
-        const term = filters.search.toLowerCase();
-        const matches =
-          activity.title?.toLowerCase().includes(term) ||
-          activity.description?.toLowerCase().includes(term) ||
-          (activity.contact && activity.contact.toLowerCase().includes(term)) ||
-          (activity.account && activity.account.toLowerCase().includes(term));
-        if (!matches) return false;
-      }
-      if (filters.type !== 'all' && activity.type !== filters.type) return false;
-      if (filters.status !== 'all') {
-        const now = new Date();
-        const isOverdue = !activity.completed && new Date(activity.dueDate) < now;
-        if (filters.status === 'completed' && !activity.completed) return false;
-        if (filters.status === 'pending' && (activity.completed || isOverdue)) return false;
-        if (filters.status === 'overdue' && !isOverdue) return false;
-      }
-      if (filters.owner !== 'all') {
-        const ownerMap = {
-          'john-doe': 'John Doe',
-          'sarah-wilson': 'Sarah Wilson',
-          'mike-johnson': 'Mike Johnson',
-          'emily-davis': 'Emily Davis',
-          'alex-brown': 'Alex Brown'
-        };
-        if (activity.owner !== ownerMap[filters.owner]) return false;
-      }
-      if (filters.priority !== 'all' && activity.priority !== filters.priority) return false;
-      if (filters.dateFrom) {
-        if (new Date(activity.dueDate) < new Date(filters.dateFrom)) return false;
-      }
-      if (filters.dateTo) {
-        const toDate = new Date(filters.dateTo);
-        toDate.setHours(23, 59, 59, 999);
-        if (new Date(activity.dueDate) > toDate) return false;
-      }
-      return true;
-    }).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
-  }, [activities, filters]);
-
-  // ── CRUD ─────────────────────────────────────────────────────
-  const handleAddActivity = async (newActivity) => {
-    // QuickAddActivity calls onAdd with a local object; we persist it to DB
-    const due_date = newActivity.dueDate ? new Date(newActivity.dueDate).toISOString() : null;
-    const payload = {
-      type: newActivity.type,
-      title: newActivity.title,
-      description: newActivity.description || null,
-      due_date,
-      priority: newActivity.priority,
-      owner: newActivity.owner || null,
-      contact: newActivity.contact || null,
-      account: newActivity.account || null,
-      notes: newActivity.notes || null,
-      completed: false,
-    };
-    try {
-      const { data, error } = await supabase.from('crm_activities').insert([payload]).select().single();
-      if (error) throw error;
-      setActivities(prev => [dbToActivity(data), ...prev]);
-    } catch (err) {
-      console.error('Failed to add activity:', err);
-      // Fallback: show locally
-      setActivities(prev => [newActivity, ...prev]);
+  const handleSave = (savedActivity) => {
+    if (modalActivity === null) {
+      // New activity
+      setActivities(prev => [savedActivity, ...prev]);
+    } else {
+      // Update
+      setActivities(prev => prev.map(a => a.id === savedActivity.id ? { ...a, ...savedActivity } : a));
     }
   };
 
-  const handleEditActivity = (activity) => {
-    setEditingActivity(activity);
-  };
-
-  const handleEditSave = (updated) => {
-    setActivities(prev => prev.map(a => a.id === updated.id ? { ...a, ...updated } : a));
-    setEditingActivity(null);
-  };
-
-  const handleCompleteActivity = async (activityId) => {
+  const handleComplete = async (id) => {
     try {
-      const { error } = await supabase.from('crm_activities').update({ completed: true }).eq('id', activityId);
+      const { error } = await supabase.from('crm_activities').update({ completed: true }).eq('id', id);
       if (error) throw error;
-      setActivities(prev => prev.map(a => a.id === activityId ? { ...a, completed: true } : a));
+      setActivities(prev => prev.map(a => a.id === id ? { ...a, completed: true } : a));
     } catch (err) {
-      console.error('Failed to complete activity:', err);
+      console.error('Complete error:', err);
     }
   };
 
-  const handleRescheduleActivity = (activity) => {
-    // Open edit modal — user can change the due date there
-    setEditingActivity(activity);
-  };
-
-  const handleDeleteActivity = async (activityId) => {
+  const handleDelete = async (id) => {
     try {
-      const { error } = await supabase.from('crm_activities').delete().eq('id', activityId);
+      const { error } = await supabase.from('crm_activities').delete().eq('id', id);
       if (error) throw error;
-      setActivities(prev => prev.filter(a => a.id !== activityId));
-      setSelectedActivities(prev => prev.filter(id => id !== activityId));
+      setActivities(prev => prev.filter(a => a.id !== id));
     } catch (err) {
-      console.error('Failed to delete activity:', err);
+      console.error('Delete error:', err);
     } finally {
       setDeletingId(null);
     }
   };
 
-  // ── Selection ────────────────────────────────────────────────
-  const handleSelectActivity = (activityId, checked) => {
-    setSelectedActivities(prev => checked ? [...prev, activityId] : prev.filter(id => id !== activityId));
-  };
+  // Reminders due today/overdue
+  const dueReminders = useMemo(() => {
+    const now = new Date();
+    const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59);
+    return activities.filter(a =>
+      a.reminder_at &&
+      !a.completed &&
+      new Date(a.reminder_at) <= todayEnd
+    );
+  }, [activities]);
 
-  const handleSelectAll = (checked) => {
-    setSelectedActivities(checked ? filteredActivities.map(a => a.id) : []);
-  };
+  const filteredActivities = useMemo(() => {
+    return activities.filter(a => {
+      if (filters.search) {
+        const t = filters.search.toLowerCase();
+        if (!(a.title?.toLowerCase().includes(t) || a.description?.toLowerCase().includes(t) || a.notes?.toLowerCase().includes(t))) return false;
+      }
+      if (filters.type && a.type !== filters.type) return false;
+      if (filters.priority && a.priority !== filters.priority) return false;
+      if (filters.assignedTo && a.assigned_to !== filters.assignedTo) return false;
+      if (filters.status === 'completed' && !a.completed) return false;
+      if (filters.status === 'pending' && (a.completed || (a.due_date && new Date(a.due_date) < new Date()))) return false;
+      if (filters.status === 'overdue' && (!a.due_date || a.completed || new Date(a.due_date) >= new Date())) return false;
+      if (filters.dateFrom && a.activity_date && a.activity_date < filters.dateFrom) return false;
+      if (filters.dateTo && a.activity_date && a.activity_date > filters.dateTo) return false;
+      return true;
+    });
+  }, [activities, filters]);
 
-  // ── Bulk actions ──────────────────────────────────────────────
-  const handleBulkComplete = async () => {
-    try {
-      await supabase.from('crm_activities').update({ completed: true }).in('id', selectedActivities);
-      setActivities(prev => prev.map(a => selectedActivities.includes(a.id) ? { ...a, completed: true } : a));
-      setSelectedActivities([]);
-    } catch (err) {
-      console.error('Bulk complete failed:', err);
-    }
-  };
+  // Stats
+  const stats = useMemo(() => ({
+    total: activities.length,
+    completed: activities.filter(a => a.completed).length,
+    overdue: activities.filter(a => a.due_date && !a.completed && new Date(a.due_date) < new Date()).length,
+    hoursLogged: activities.reduce((sum, a) => sum + (parseFloat(a.hours_logged) || 0), 0).toFixed(1),
+  }), [activities]);
 
-  const handleBulkReassign = async (newOwner) => {
-    try {
-      await supabase.from('crm_activities').update({ owner: newOwner }).in('id', selectedActivities);
-      setActivities(prev => prev.map(a => selectedActivities.includes(a.id) ? { ...a, owner: newOwner } : a));
-      setSelectedActivities([]);
-    } catch (err) {
-      console.error('Bulk reassign failed:', err);
-    }
-  };
+  const clearFilters = () => setFilters({ search: '', type: '', status: '', assignedTo: '', priority: '', dateFrom: '', dateTo: '' });
+  const hasFilters = Object.values(filters).some(v => v !== '');
 
-  const handleBulkDelete = async () => {
-    if (!window.confirm(`Delete ${selectedActivities.length} activities?`)) return;
-    try {
-      await supabase.from('crm_activities').delete().in('id', selectedActivities);
-      setActivities(prev => prev.filter(a => !selectedActivities.includes(a.id)));
-      setSelectedActivities([]);
-    } catch (err) {
-      console.error('Bulk delete failed:', err);
-    }
-  };
+  const inputCls = "px-3 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary";
 
   return (
     <div className="min-h-screen bg-background">
       <Header onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} isSidebarOpen={isSidebarOpen} />
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <main className="lg:ml-64 pt-16">
-        <div className="p-6">
-          {/* Page Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-foreground mb-2">Activities</h1>
-              <p className="text-muted-foreground">Track and manage your sales activities, tasks, and follow-ups</p>
-            </div>
-            <Button variant="default" onClick={() => setIsQuickAddOpen(true)} iconName="Plus" iconPosition="left">
-              Quick Add Activity
-            </Button>
-          </div>
+        <div className="p-4 lg:p-6">
+          <motion.div initial={false} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
 
-          <ActivityStats activities={activities} />
-
-          <ActivityFilters
-            filters={filters}
-            onFilterChange={(field, value) => setFilters(prev => ({ ...prev, [field]: value }))}
-            onClearFilters={() => setFilters({ search: '', type: 'all', status: 'all', owner: 'all', priority: 'all', dateFrom: '', dateTo: '' })}
-            totalCount={activities.length}
-            filteredCount={filteredActivities.length}
-          />
-
-          <BulkActions
-            selectedCount={selectedActivities.length}
-            onMarkComplete={handleBulkComplete}
-            onReassign={handleBulkReassign}
-            onDelete={handleBulkDelete}
-            onClearSelection={() => setSelectedActivities([])}
-          />
-
-          {/* Activities List */}
-          <div className="bg-card border border-border rounded-lg">
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <div className="flex items-center space-x-4">
-                <Checkbox
-                  checked={selectedActivities.length === filteredActivities.length && filteredActivities.length > 0}
-                  onChange={(e) => handleSelectAll(e?.target?.checked)}
-                  className="mr-2"
-                />
-                <h3 className="text-lg font-semibold text-foreground">
-                  Activity Timeline ({filteredActivities.length})
-                </h3>
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-2xl lg:text-3xl font-bold text-foreground mb-1">Activities</h1>
+                <p className="text-muted-foreground">Daily log — calls, emails, meetings, follow-ups &amp; tasks</p>
               </div>
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" size="sm" iconName="RefreshCw" onClick={fetchActivities}>
-                  Refresh
-                </Button>
-              </div>
+              <button
+                onClick={() => setModalActivity(null)}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+              >
+                <Icon name="Plus" size={16} />
+                Add Activity
+              </button>
             </div>
 
-            <div className="p-6">
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                </div>
-              ) : filteredActivities.length === 0 ? (
-                <div className="text-center py-12">
-                  <Icon name="Calendar" size={48} className="text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-foreground mb-2">No activities found</h3>
-                  <p className="text-muted-foreground mb-4">
-                    {activities.length === 0 ? 'Get started by creating your first activity' : 'Try adjusting your filters'}
+            {/* Reminder banner */}
+            {dueReminders.length > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-5 flex items-start gap-3">
+                <Icon name="Bell" size={18} className="text-blue-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-blue-800 mb-1">
+                    {dueReminders.length} reminder{dueReminders.length > 1 ? 's' : ''} due today
                   </p>
-                  <Button variant="outline" onClick={() => setIsQuickAddOpen(true)} iconName="Plus" iconPosition="left">
-                    Add Activity
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {filteredActivities.map((activity) => (
-                    <div key={activity.id} className="flex items-start space-x-4">
-                      <Checkbox
-                        checked={selectedActivities.includes(activity.id)}
-                        onChange={(e) => handleSelectActivity(activity.id, e?.target?.checked)}
-                        className="mt-6"
-                      />
-                      <div className="flex-1">
-                        <ActivityTimeline
-                          activities={[activity]}
-                          onEdit={handleEditActivity}
-                          onComplete={handleCompleteActivity}
-                          onReschedule={handleRescheduleActivity}
-                        />
-                      </div>
-                      {/* Delete button per row */}
-                      <div className="mt-4 flex-shrink-0">
-                        {deletingId === activity.id ? (
-                          <div className="flex items-center gap-1">
-                            <button onClick={() => handleDeleteActivity(activity.id)} className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700">Yes</button>
-                            <button onClick={() => setDeletingId(null)} className="px-2 py-1 bg-muted text-foreground rounded text-xs">No</button>
-                          </div>
-                        ) : (
-                          <button onClick={() => setDeletingId(activity.id)} className="p-1.5 rounded hover:bg-red-50 transition-colors text-muted-foreground hover:text-red-600" title="Delete">
-                            <Icon name="Trash2" size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
+                  {dueReminders.slice(0, 3).map(a => (
+                    <p key={a.id} className="text-xs text-blue-700">• {a.title}</p>
                   ))}
+                  {dueReminders.length > 3 && <p className="text-xs text-blue-600 mt-0.5">+{dueReminders.length - 3} more</p>}
+                </div>
+              </div>
+            )}
+
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              {[
+                { label: 'Total Activities', value: stats.total, icon: 'Activity', color: 'text-foreground' },
+                { label: 'Completed', value: stats.completed, icon: 'CheckCircle', color: 'text-green-600' },
+                { label: 'Overdue', value: stats.overdue, icon: 'AlertCircle', color: 'text-red-600' },
+                { label: 'Hours Logged', value: `${stats.hoursLogged}h`, icon: 'Timer', color: 'text-primary' },
+              ].map(stat => (
+                <div key={stat.label} className="bg-card p-5 rounded-xl border border-border flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
+                    <Icon name={stat.icon} size={18} className={stat.color} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">{stat.label}</p>
+                    <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Filters */}
+            <div className="bg-card rounded-xl border border-border p-4 mb-5">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="relative md:col-span-2">
+                  <Icon name="Search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Search activities..."
+                    value={filters.search}
+                    onChange={(e) => setFilters(p => ({ ...p, search: e.target.value }))}
+                    className={`${inputCls} w-full pl-9`}
+                  />
+                </div>
+                <select value={filters.type} onChange={e => setFilters(p => ({ ...p, type: e.target.value }))} className={`${inputCls} w-full`}>
+                  <option value="">All Types</option>
+                  {ACTIVITY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+                <select value={filters.status} onChange={e => setFilters(p => ({ ...p, status: e.target.value }))} className={`${inputCls} w-full`}>
+                  <option value="">All Statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="completed">Completed</option>
+                  <option value="overdue">Overdue</option>
+                </select>
+                <select value={filters.priority} onChange={e => setFilters(p => ({ ...p, priority: e.target.value }))} className={`${inputCls} w-full`}>
+                  <option value="">All Priorities</option>
+                  {PRIORITIES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                </select>
+                {isAdmin && (
+                  <select value={filters.assignedTo} onChange={e => setFilters(p => ({ ...p, assignedTo: e.target.value }))} className={`${inputCls} w-full`}>
+                    <option value="">All Assignees</option>
+                    {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+                  </select>
+                )}
+                <input type="date" value={filters.dateFrom} onChange={e => setFilters(p => ({ ...p, dateFrom: e.target.value }))} className={`${inputCls} w-full`} placeholder="From" />
+                <input type="date" value={filters.dateTo} onChange={e => setFilters(p => ({ ...p, dateTo: e.target.value }))} className={`${inputCls} w-full`} placeholder="To" />
+              </div>
+              {hasFilters && (
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Showing {filteredActivities.length} of {activities.length}</span>
+                  <button onClick={clearFilters} className="text-sm text-primary hover:underline">Clear filters</button>
                 </div>
               )}
             </div>
-          </div>
+
+            {/* Activity list */}
+            <div className="space-y-3">
+              {loading ? (
+                <div className="bg-card rounded-xl border border-border p-12 text-center">
+                  <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                  <p className="text-muted-foreground">Loading activities...</p>
+                </div>
+              ) : filteredActivities.length === 0 ? (
+                <div className="bg-card rounded-xl border border-border p-12 text-center">
+                  <Icon name="Calendar" size={40} className="mx-auto mb-3 text-muted-foreground opacity-40" />
+                  <p className="text-muted-foreground mb-4">
+                    {activities.length === 0 ? 'No activities yet. Log your first activity!' : 'No activities match your filters.'}
+                  </p>
+                  <button onClick={() => setModalActivity(null)} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 mx-auto transition-colors">
+                    <Icon name="Plus" size={15} />
+                    Add Activity
+                  </button>
+                </div>
+              ) : (
+                filteredActivities.map(activity => (
+                  <ActivityCard
+                    key={activity.id}
+                    activity={activity}
+                    users={users}
+                    onEdit={(a) => setModalActivity(a)}
+                    onComplete={handleComplete}
+                    onDelete={(id) => setDeletingId(id)}
+                    isDeleting={deletingId === activity.id}
+                    onConfirmDelete={handleDelete}
+                    onCancelDelete={() => setDeletingId(null)}
+                  />
+                ))
+              )}
+            </div>
+
+          </motion.div>
         </div>
       </main>
 
-      <QuickAddActivity
-        isOpen={isQuickAddOpen}
-        onClose={() => setIsQuickAddOpen(false)}
-        onAdd={handleAddActivity}
-      />
-
+      {/* Add / Edit Modal */}
       <AnimatePresence>
-        {editingActivity && (
-          <EditActivityModal
-            activity={editingActivity}
-            onClose={() => setEditingActivity(null)}
-            onSave={handleEditSave}
+        {modalActivity !== undefined && (
+          <ActivityFormModal
+            activity={modalActivity}
+            users={users}
+            currentUserId={user?.id}
+            isAdmin={isAdmin}
+            onClose={() => setModalActivity(undefined)}
+            onSave={handleSave}
           />
         )}
       </AnimatePresence>

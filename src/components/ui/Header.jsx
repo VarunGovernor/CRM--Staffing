@@ -235,13 +235,41 @@ const Header = ({ onMenuToggle, isSidebarOpen = false }) => {
   };
 
   const getNotifIcon = (type) => {
-    switch (type) {
-      case 'clock_in': return 'LogIn';
-      case 'clock_out': return 'LogOut';
-      case 'login': return 'LogIn';
-      case 'logout': return 'LogOut';
-      default: return 'Bell';
-    }
+    const map = {
+      clock_in:           'LogIn',
+      clock_out:          'LogOut',
+      login:              'LogIn',
+      logout:             'LogOut',
+      candidate_added:    'UserPlus',
+      interview_added:    'CalendarCheck',
+      placement_added:    'Briefcase',
+      nca_signed:         'FileCheck',
+      bgc_completed:      'ShieldCheck',
+      start_date_updated: 'CalendarDays',
+      timesheet_uploaded: 'Clock',
+      invoice_generated:  'Receipt',
+      performance_alert:  'AlertTriangle',
+    };
+    return map[type] || 'Bell';
+  };
+
+  const getNotifColor = (type) => {
+    const map = {
+      clock_in:           'bg-success/10 text-success',
+      clock_out:          'bg-error/10 text-error',
+      login:              'bg-primary/10 text-primary',
+      logout:             'bg-muted text-muted-foreground',
+      candidate_added:    'bg-blue-100 text-blue-600',
+      interview_added:    'bg-indigo-100 text-indigo-600',
+      placement_added:    'bg-green-100 text-green-600',
+      nca_signed:         'bg-teal-100 text-teal-600',
+      bgc_completed:      'bg-emerald-100 text-emerald-600',
+      start_date_updated: 'bg-purple-100 text-purple-600',
+      timesheet_uploaded: 'bg-cyan-100 text-cyan-600',
+      invoice_generated:  'bg-yellow-100 text-yellow-700',
+      performance_alert:  'bg-red-100 text-red-600',
+    };
+    return map[type] || 'bg-muted text-muted-foreground';
   };
 
   const formatTimeAgo = (timestamp) => {
@@ -420,12 +448,7 @@ const Header = ({ onMenuToggle, isSidebarOpen = false }) => {
                               !notif.is_read ? 'bg-primary/5' : ''
                             }`}
                           >
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 mt-0.5 shrink-0 ${
-                              notif.type === 'clock_out' ? 'bg-error/10 text-error'
-                                : notif.type === 'clock_in' ? 'bg-success/10 text-success'
-                                : notif.type === 'login' ? 'bg-primary/10 text-primary'
-                                : 'bg-muted text-muted-foreground'
-                            }`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 mt-0.5 shrink-0 ${getNotifColor(notif.type)}`}>
                               <Icon name={getNotifIcon(notif.type)} size={14} />
                             </div>
                             <div className="flex-1 min-w-0">
@@ -454,11 +477,15 @@ const Header = ({ onMenuToggle, isSidebarOpen = false }) => {
                 className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted transition-smooth"
                 aria-label="User account menu"
               >
-                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                  <span className="text-sm font-medium text-primary-foreground">
-                    {userProfile?.full_name?.split(' ')?.map(n => n?.[0])?.join('')?.toUpperCase() || 'U'}
-                  </span>
-                </div>
+                {userProfile?.avatar_url ? (
+                  <img key={userProfile.avatar_url} src={userProfile.avatar_url} alt={userProfile.full_name || 'User'} className="w-8 h-8 rounded-full object-cover" onError={(e) => { e.currentTarget.style.display='none'; e.currentTarget.nextSibling.style.display='flex'; }} />
+                ) : (
+                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                    <span className="text-sm font-medium text-primary-foreground">
+                      {userProfile?.full_name?.split(' ')?.map(n => n?.[0])?.join('')?.toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                )}
                 <div className="hidden sm:block text-left">
                   <div className="text-sm font-medium text-foreground">{userProfile?.full_name || user?.email}</div>
                   <div className="text-xs text-muted-foreground">{userProfile?.role?.replace('_', ' ')?.toUpperCase() || 'User'}</div>
@@ -479,11 +506,15 @@ const Header = ({ onMenuToggle, isSidebarOpen = false }) => {
                   <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-64 max-w-[16rem] bg-popover border border-border rounded-lg shadow-elevation-2 z-60">
                     <div className="p-4 border-b border-border">
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                          <span className="text-sm font-medium text-primary-foreground">
-                            {userProfile?.full_name?.split(' ')?.map(n => n?.[0])?.join('')?.toUpperCase() || 'U'}
-                          </span>
-                        </div>
+                        {userProfile?.avatar_url ? (
+                          <img key={userProfile.avatar_url} src={userProfile.avatar_url} alt={userProfile.full_name || 'User'} className="w-10 h-10 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                            <span className="text-sm font-medium text-primary-foreground">
+                              {userProfile?.full_name?.split(' ')?.map(n => n?.[0])?.join('')?.toUpperCase() || 'U'}
+                            </span>
+                          </div>
+                        )}
                         <div>
                           <div className="font-medium text-popover-foreground">{userProfile?.full_name || 'User'}</div>
                           <div className="text-sm text-muted-foreground">{user?.email}</div>

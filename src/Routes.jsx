@@ -58,6 +58,10 @@ const AdminActivity = lazy(() => import('./pages/admin-activity'));
 const AdminUsers = lazy(() => import('./pages/admin/users'));
 const PendingApproval = lazy(() => import('./pages/pending-approval'));
 
+// OAuth Callback Pages (lazy loaded — no auth guard needed)
+const MicrosoftCallback = lazy(() => import('./pages/auth/MicrosoftCallback'));
+const QuickBooksCallback = lazy(() => import('./pages/auth/QuickBooksCallback'));
+
 const Routes = () => {
   return (
     <BrowserRouter>
@@ -106,6 +110,10 @@ const Routes = () => {
 
         {/* Pending approval — approval-exempt path is handled inside ProtectedRoute */}
         <Route path="/pending-approval" element={<ProtectedRoute><PendingApproval /></ProtectedRoute>} />
+
+        {/* OAuth Callback Routes — public, no auth guard */}
+        <Route path="/auth/microsoft/callback" element={<MicrosoftCallback />} />
+        <Route path="/auth/quickbooks/callback" element={<QuickBooksCallback />} />
 
         {/* Admin Routes */}
         <Route path="/admin/activity" element={<ProtectedRoute><AdminActivity /></ProtectedRoute>} />

@@ -1,54 +1,58 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import Icon from '../../../components/AppIcon';
-import Image from '../../../components/AppImage';
 import Button from '../../../components/ui/Button';
 import { Checkbox } from '../../../components/ui/Checkbox';
 
-const ContactsTable = ({ 
-  contacts, 
-  selectedContacts, 
-  onSelectContact, 
-  onSelectAllContacts, 
-  onContactClick, 
-  sortConfig, 
-  onSort 
+const VISA_COLORS = {
+  'US Citizen':  'bg-success/10 text-success border-success/20',
+  'Green Card':  'bg-primary/10 text-primary border-primary/20',
+  'H1B':         'bg-blue-100 text-blue-700 border-blue-200',
+  'H4 EAD':      'bg-indigo-100 text-indigo-700 border-indigo-200',
+  'L2 EAD':      'bg-purple-100 text-purple-700 border-purple-200',
+  'OPT':         'bg-yellow-100 text-yellow-700 border-yellow-200',
+  'CPT':         'bg-orange-100 text-orange-700 border-orange-200',
+  'TN':          'bg-cyan-100 text-cyan-700 border-cyan-200',
+  'GC EAD':      'bg-teal-100 text-teal-700 border-teal-200',
+};
+
+const getVisaColor = (visa) =>
+  VISA_COLORS[visa] || 'bg-muted text-muted-foreground border-border';
+
+const getInitials = (name = '') =>
+  name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+
+const ContactsTable = ({
+  contacts,
+  selectedContacts,
+  onSelectContact,
+  onSelectAllContacts,
+  onContactClick,
+  onEdit,
+  onDelete,
+  sortConfig,
+  onSort,
 }) => {
   const [hoveredRow, setHoveredRow] = useState(null);
 
-  const getSortIcon = (column) => {
-    if (sortConfig?.key !== column) return 'ArrowUpDown';
+  const getSortIcon = (col) => {
+    if (sortConfig?.key !== col) return 'ArrowUpDown';
     return sortConfig?.direction === 'asc' ? 'ArrowUp' : 'ArrowDown';
   };
 
-  const handleSort = (column) => {
-    onSort(column);
-  };
+  const columns = [
+    { key: 'name',  label: 'Name'  },
+    { key: 'title', label: 'Title' },
+    { key: 'visa',  label: 'VISA'  },
+  ];
 
-  const handleQuickAction = (e, action, contact) => {
-    e?.stopPropagation();
-  };
-
-  const formatLastContact = (date) => {
-    const now = new Date();
-    const contactDate = new Date(date);
-    const diffTime = Math.abs(now - contactDate);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
-    return contactDate?.toLocaleDateString();
-  };
-
-  const getStatusColor = (status) => {
-    const colors = {
-      'Active': 'bg-success/10 text-success border-success/20',
-      'Inactive': 'bg-muted text-muted-foreground border-border',
-      'Prospect': 'bg-warning/10 text-warning border-warning/20',
-      'Customer': 'bg-primary/10 text-primary border-primary/20'
-    };
-    return colors?.[status] || colors?.['Inactive'];
-  };
+  if (!contacts?.length) {
+    return (
+      <div className="bg-card rounded-xl border border-border p-12 text-center">
+        <Icon name="Users" size={40} className="text-muted-foreground mx-auto mb-3" />
+        <p className="text-muted-foreground">No contacts found. Add one or import from CSV.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden">
@@ -64,105 +68,65 @@ const ContactsTable = ({
                   onChange={(e) => onSelectAllContacts(e?.target?.checked)}
                 />
               </th>
-              {[
-                { key: 'name', label: 'Contact' },
-                { key: 'title', label: 'Title' },
-                { key: 'company', label: 'Company' },
-                { key: 'email', label: 'Email' },
-                { key: 'phone', label: 'Phone' },
-                { key: 'lastContact', label: 'Last Contact' },
-                { key: 'status', label: 'Status' }
-              ]?.map((column) => (
+              {columns.map((col) => (
                 <th
-                  key={column?.key}
+                  key={col.key}
                   className="px-4 py-3 text-left text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
-                  onClick={() => handleSort(column?.key)}
+                  onClick={() => onSort(col.key)}
                 >
                   <div className="flex items-center space-x-2">
-                    <span>{column?.label}</span>
-                    <Icon 
-                      name={getSortIcon(column?.key)} 
-                      size={14} 
-                      className="opacity-50"
-                    />
+                    <span>{col.label}</span>
+                    <Icon name={getSortIcon(col.key)} size={14} className="opacity-50" />
                   </div>
                 </th>
               ))}
-              <th className="w-24 px-4 py-3 text-center text-sm font-medium text-muted-foreground">
+              <th className="w-28 px-4 py-3 text-center text-sm font-medium text-muted-foreground">
                 Actions
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {contacts?.map((contact) => (
+            {contacts.map((contact) => (
               <tr
-                key={contact?.id}
+                key={contact.id}
                 className="hover:bg-muted/30 cursor-pointer transition-colors"
                 onClick={() => onContactClick(contact)}
-                onMouseEnter={() => setHoveredRow(contact?.id)}
+                onMouseEnter={() => setHoveredRow(contact.id)}
                 onMouseLeave={() => setHoveredRow(null)}
               >
-                <td className="px-4 py-4">
+                <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                   <Checkbox
-                    checked={selectedContacts?.includes(contact?.id)}
-                    onChange={(e) => {
-                      e?.stopPropagation();
-                      onSelectContact(contact?.id, e?.target?.checked);
-                    }}
+                    checked={selectedContacts?.includes(contact.id)}
+                    onChange={(e) => onSelectContact(contact.id, e.target.checked)}
                   />
                 </td>
                 <td className="px-4 py-4">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex-shrink-0">
-                      <Image
-                        src={contact?.avatar}
-                        alt={contact?.avatarAlt}
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-semibold text-primary">
+                        {getInitials(contact.name)}
+                      </span>
                     </div>
-                    <div>
-                      <div className="font-medium text-foreground">{contact?.name}</div>
-                      <div className="text-sm text-muted-foreground">{contact?.department}</div>
-                    </div>
+                    <span className="font-medium text-foreground">{contact.name}</span>
                   </div>
                 </td>
-                <td className="px-4 py-4 text-sm text-foreground">{contact?.title}</td>
-                <td className="px-4 py-4 text-sm text-foreground">{contact?.company}</td>
-                <td className="px-4 py-4 text-sm text-primary hover:underline">{contact?.email}</td>
-                <td className="px-4 py-4 text-sm text-foreground">{contact?.phone}</td>
-                <td className="px-4 py-4 text-sm text-muted-foreground">
-                  {formatLastContact(contact?.lastContact)}
-                </td>
+                <td className="px-4 py-4 text-sm text-foreground">{contact.title || '—'}</td>
                 <td className="px-4 py-4">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(contact?.status)}`}>
-                    {contact?.status}
-                  </span>
+                  {contact.visa ? (
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getVisaColor(contact.visa)}`}>
+                      {contact.visa}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">—</span>
+                  )}
                 </td>
-                <td className="px-4 py-4">
-                  <div className={`flex items-center justify-center space-x-1 transition-opacity ${hoveredRow === contact?.id ? 'opacity-100' : 'opacity-0'}`}>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={(e) => handleQuickAction(e, 'call', contact)}
-                    >
-                      <Icon name="Phone" size={14} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={(e) => handleQuickAction(e, 'email', contact)}
-                    >
-                      <Icon name="Mail" size={14} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={(e) => handleQuickAction(e, 'edit', contact)}
-                    >
+                <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                  <div className={`flex items-center justify-center space-x-1 transition-opacity ${hoveredRow === contact.id ? 'opacity-100' : 'opacity-0'}`}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(contact)}>
                       <Icon name="Edit" size={14} />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-error hover:text-error" onClick={() => onDelete(contact.id)}>
+                      <Icon name="Trash2" size={14} />
                     </Button>
                   </div>
                 </td>
@@ -171,71 +135,39 @@ const ContactsTable = ({
           </tbody>
         </table>
       </div>
-      {/* Mobile Card Layout */}
+
+      {/* Mobile Cards */}
       <div className="lg:hidden">
-        {contacts?.map((contact) => (
+        {contacts.map((contact) => (
           <div
-            key={contact?.id}
+            key={contact.id}
             className="p-4 border-b border-border last:border-b-0 cursor-pointer hover:bg-muted/30 transition-colors"
             onClick={() => onContactClick(contact)}
           >
             <div className="flex items-start space-x-3">
               <Checkbox
-                checked={selectedContacts?.includes(contact?.id)}
-                onChange={(e) => {
-                  e?.stopPropagation();
-                  onSelectContact(contact?.id, e?.target?.checked);
-                }}
+                checked={selectedContacts?.includes(contact.id)}
+                onChange={(e) => { e.stopPropagation(); onSelectContact(contact.id, e.target.checked); }}
                 className="mt-1"
               />
-              <div className="w-12 h-12 rounded-full overflow-hidden bg-muted flex-shrink-0">
-                <Image
-                  src={contact?.avatar}
-                  alt={contact?.avatarAlt}
-                  className="w-full h-full object-cover"
-                />
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-sm font-semibold text-primary">{getInitials(contact.name)}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="font-medium text-foreground truncate">{contact?.name}</h3>
-                    <p className="text-sm text-muted-foreground">{contact?.title}</p>
-                    <p className="text-sm text-muted-foreground">{contact?.company}</p>
+                    <h3 className="font-medium text-foreground">{contact.name}</h3>
+                    <p className="text-sm text-muted-foreground">{contact.title || '—'}</p>
                   </div>
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(contact?.status)}`}>
-                    {contact?.status}
-                  </span>
+                  {contact.visa && (
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getVisaColor(contact.visa)}`}>
+                      {contact.visa}
+                    </span>
+                  )}
                 </div>
-                <div className="mt-2 space-y-1">
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Icon name="Mail" size={14} className="mr-2" />
-                    <span className="truncate">{contact?.email}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Icon name="Phone" size={14} className="mr-2" />
-                    <span>{contact?.phone}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Icon name="Clock" size={14} className="mr-2" />
-                    <span>Last contact: {formatLastContact(contact?.lastContact)}</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-end space-x-2 mt-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => handleQuickAction(e, 'call', contact)}
-                  >
-                    <Icon name="Phone" size={16} className="mr-1" />
-                    Call
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => handleQuickAction(e, 'email', contact)}
-                  >
-                    <Icon name="Mail" size={16} className="mr-1" />
-                    Email
+                <div className="flex items-center justify-end space-x-2 mt-3" onClick={(e) => e.stopPropagation()}>
+                  <Button variant="ghost" size="sm" onClick={() => onEdit(contact)}>
+                    <Icon name="Edit" size={14} className="mr-1" /> Edit
                   </Button>
                 </div>
               </div>

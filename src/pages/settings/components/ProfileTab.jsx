@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Icon from '../../../components/AppIcon';
-import Image from '../../../components/AppImage';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
@@ -12,7 +11,7 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 
 const ProfileTab = () => {
-  const { user, userProfile, updateProfile } = useAuth();
+  const { user, userProfile, updateProfile, refreshProfile } = useAuth();
   const fileInputRef = useRef(null);
 
   const [profileData, setProfileData] = useState({
@@ -48,8 +47,6 @@ const ProfileTab = () => {
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [saveMessage, setSaveMessage] = useState(null);
-  const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
-  const avatarMenuRef = useRef(null);
 
   // Load profile data from auth context
   useEffect(() => {
@@ -123,26 +120,11 @@ const ProfileTab = () => {
     }));
   };
 
-  // Close avatar menu on click outside
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (avatarMenuRef.current && !avatarMenuRef.current.contains(e.target)) {
-        setIsAvatarMenuOpen(false);
-      }
-    };
-    if (isAvatarMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isAvatarMenuOpen]);
-
   const handleAvatarUpload = () => {
-    setIsAvatarMenuOpen(false);
     fileInputRef.current?.click();
   };
 
   const handleAvatarRemove = async () => {
-    setIsAvatarMenuOpen(false);
     if (!profileData.avatar) return;
 
     setIsUploading(true);
@@ -198,25 +180,32 @@ const ProfileTab = () => {
 
     try {
       const ext = file.name.split('.').pop();
-      const filePath = `${user.id}/avatar.${ext}`;
+      // Use a unique filename each upload to avoid CDN caching old image
+      const filePath = `${user.id}/avatar-${Date.now()}.${ext}`;
 
-      // Upload to Supabase Storage (upsert to overwrite existing)
+      // Delete old avatar file(s) first so storage doesn't accumulate
+      const { data: oldFiles } = await supabase.storage.from('avatars').list(user.id);
+      if (oldFiles?.length) {
+        const oldPaths = oldFiles.map(f => `${user.id}/${f.name}`);
+        await supabase.storage.from('avatars').remove(oldPaths);
+      }
+
+      // Upload new file
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, file, { upsert: false });
 
       if (uploadError) {
         setSaveMessage({ type: 'error', text: `Upload failed: ${uploadError.message}` });
         return;
       }
 
-      // Get public URL
+      // Get public URL (unique path = no CDN cache issue)
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
 
-      // Add cache-buster so the browser loads the new image
-      const avatarUrl = `${publicUrl}?t=${Date.now()}`;
+      const avatarUrl = publicUrl;
 
       // Save URL to user profile
       const { error: profileError } = await updateProfile({ avatar_url: avatarUrl });
@@ -335,55 +324,47 @@ const ProfileTab = () => {
             className="hidden"
           />
           <div className="flex items-center space-x-6">
-            <div className="relative" ref={avatarMenuRef}>
+            <div className="relative">
               <div className={`w-20 h-20 rounded-full overflow-hidden bg-muted ${isUploading ? 'opacity-50' : ''}`}>
-                <Image
-                  src={profileData?.avatar}
-                  alt={`Profile photo of ${profileData.firstName} ${profileData.lastName}`}
-                  className="w-full h-full object-cover"
-                />
+                {profileData?.avatar ? (
+                  <img
+                    src={profileData.avatar}
+                    alt={`${profileData.firstName} ${profileData.lastName}`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-primary">
+                    <span className="text-xl font-semibold text-primary-foreground">
+                      {profileData.firstName?.[0]?.toUpperCase()}{profileData.lastName?.[0]?.toUpperCase()}
+                    </span>
+                  </div>
+                )}
               </div>
               <button
-                onClick={() => setIsAvatarMenuOpen(!isAvatarMenuOpen)}
+                onClick={handleAvatarUpload}
                 disabled={isUploading}
                 className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center hover:bg-primary/90 transition-smooth disabled:opacity-50"
-                aria-label="Avatar options"
+                aria-label="Upload photo"
               >
                 <Icon name={isUploading ? 'Loader' : 'Camera'} size={16} />
               </button>
-
-              {/* Avatar dropdown menu */}
-              {isAvatarMenuOpen && (
-                <div className="absolute top-full left-0 mt-2 w-44 bg-card border border-border rounded-lg shadow-lg z-50 py-1">
-                  <button
-                    onClick={handleAvatarUpload}
-                    className="flex items-center w-full px-3 py-2 text-sm text-card-foreground hover:bg-muted transition-smooth"
-                  >
-                    <Icon name="Upload" size={14} className="mr-2" />
-                    Upload Photo
-                  </button>
-                  <button
-                    onClick={handleAvatarRemove}
-                    disabled={!profileData.avatar}
-                    className={`flex items-center w-full px-3 py-2 text-sm transition-smooth ${
-                      profileData.avatar
-                        ? 'text-red-600 hover:bg-red-50 font-medium cursor-pointer'
-                        : 'text-muted-foreground/40 cursor-not-allowed'
-                    }`}
-                  >
-                    <Icon name="Trash2" size={14} className="mr-2" />
-                    Remove Photo
-                  </button>
-                </div>
-              )}
             </div>
             <div>
               <h4 className="font-medium text-card-foreground">Profile Photo</h4>
-              <p className="text-sm text-muted-foreground mb-2">JPG, PNG or GIF. Max size 2MB.</p>
-              <Button variant="outline" size="sm" onClick={handleAvatarUpload} disabled={isUploading}>
-                <Icon name={isUploading ? 'Loader' : 'Upload'} size={16} className="mr-2" />
-                {isUploading ? 'Uploading...' : 'Upload New Photo'}
-              </Button>
+              <p className="text-sm text-muted-foreground mb-3">JPG, PNG or GIF. Max size 2MB.</p>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleAvatarUpload} disabled={isUploading}>
+                  <Icon name={isUploading ? 'Loader' : 'Upload'} size={16} className="mr-2" />
+                  {isUploading ? 'Uploading...' : 'Upload New Photo'}
+                </Button>
+                {profileData?.avatar && (
+                  <Button variant="ghost" size="sm" onClick={handleAvatarRemove} disabled={isUploading}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                    <Icon name="Trash2" size={16} className="mr-2" />
+                    Remove
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
